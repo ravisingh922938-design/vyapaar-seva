@@ -11,7 +11,7 @@ export default function RegisterScreen() {
     const router = useRouter();
 
     // Browser testing ke liye 'localhost' hi use karein
-    const API_BASE = "http://localhost:5000/api";
+    const API_BASE = "http://api.vister.in/api";
 
     useEffect(() => {
         const fetchCats = async () => {

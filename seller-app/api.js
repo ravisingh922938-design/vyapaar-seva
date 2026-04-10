@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Aapka Naya IPv4 Address (ipconfig wala)
-const API_URL = "http://localhost:5000/api";
+const API_URL = "http://api.vister.in/api";
 
 
 const api = axios.create({

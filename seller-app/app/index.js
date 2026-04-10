@@ -11,7 +11,7 @@ export default function LoginScreen() {
   const router = useRouter();
 
   // BROWSER TESTING KE LIYE LOCALHOST BEST HAI
-  const API_URL = "http://localhost:5000/api";
+  const API_URL = "http://api.vister.in/api";
 
   // --- STEP 1: MOBILE CHECK AUR OTP BHEJNA ---
   const handleSendOTP = async () => {
