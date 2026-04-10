@@ -20,7 +20,7 @@ export default function FreeListingPage() {
     });
 
     const router = useRouter();
-    const API_BASE = "http://api.vister.in/api";
+    const API_BASE = "https://api.vister.in/api";
 
     // 1. कैटेगरीज लोड करना
     useEffect(() => {
