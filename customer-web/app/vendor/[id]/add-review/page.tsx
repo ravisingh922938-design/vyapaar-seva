@@ -1,8 +1,8 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
-import { Star, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Star, ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
 
 export default function AddReview() {
     const params = useParams();
@@ -11,14 +11,18 @@ export default function AddReview() {
     const [hover, setHover] = useState(0);
     const [name, setName] = useState("");
     const [comment, setComment] = useState("");
+    const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+
+    const API_BASE = "http://localhost:5000/api"; // Always use localhost for testing
 
     const handleSubmit = async (e: any) => {
         e.preventDefault();
         if (rating === 0) return alert("Kripya star rating chunein!");
 
+        setLoading(true);
         try {
-            await axios.post('http://10.243.86.238:5000/api/vendors/reviews/add', {
+            await axios.post(`${API_BASE}/vendors/reviews/add`, {
                 vendorId: params.id,
                 customerName: name,
                 rating,
@@ -27,7 +31,9 @@ export default function AddReview() {
             setSubmitted(true);
             setTimeout(() => router.back(), 2000);
         } catch (err) {
-            alert("Review save nahi ho paya.");
+            alert("Review save nahi ho paya. Backend chal raha hai?");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -35,76 +41,70 @@ export default function AddReview() {
         return (
             <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
                 <CheckCircle size={80} className="text-green-500 mb-4 animate-bounce" />
-                <h2 className="text-3xl font-black text-slate-800">Dhanyawad!</h2>
-                <p className="text-slate-500 mt-2">Aapka feedback Patna ke doosre grahako ki madad karega.</p>
+                <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter">Dhanyawad!</h2>
+                <p className="text-slate-500 mt-2 font-medium">Aapka feedback Patna ke doosre grahako ki madad karega.</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 p-6">
-            <button onClick={() => router.back()} className="flex items-center gap-2 text-slate-500 font-bold mb-8">
-                <ArrowLeft size={20} /> Wapas Jayein
+        <div className="min-h-screen bg-[#F8F9FB] p-4 md:p-10 font-sans">
+            <button onClick={() => router.back()} className="flex items-center gap-2 text-slate-400 font-black uppercase text-[10px] tracking-widest mb-8 hover:text-blue-600 transition-colors">
+                <ArrowLeft size={16} /> Wapas Jayein
             </button>
 
-            <div className="max-w-xl mx-auto bg-white rounded-[2.5rem] shadow-2xl p-10">
-                <h1 className="text-3xl font-black text-slate-800 mb-2 uppercase tracking-tighter">Write a Review</h1>
-                <p className="text-slate-500 mb-8">Aapka anubhav kaisa raha? Sitare (Stars) dekar batayein.</p>
+            <div className="max-w-xl mx-auto bg-white rounded-[3rem] shadow-2xl p-8 md:p-12 border border-slate-100">
+                <h1 className="text-3xl font-black text-slate-800 mb-2 uppercase tracking-tighter italic">Write a Review</h1>
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-10">Rate your experience with this expert</p>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-8">
                     {/* STAR RATING PICKER */}
-                    <div className="flex justify-center gap-2 mb-6">
+                    <div className="flex justify-center gap-3">
                         {[1, 2, 3, 4, 5].map((star) => (
                             <button
                                 key={star}
                                 type="button"
-                                className="transition-transform active:scale-125"
+                                className="transition-all hover:scale-125 active:scale-90"
                                 onClick={() => setRating(star)}
                                 onMouseEnter={() => setHover(star)}
                                 onMouseLeave={() => setHover(0)}
                             >
                                 <Star
-                                    size={48}
+                                    size={44}
                                     fill={(hover || rating) >= star ? "#EAB308" : "none"}
-                                    className={(hover || rating) >= star ? "text-yellow-500" : "text-slate-300"}
+                                    className={(hover || rating) >= star ? "text-yellow-500" : "text-slate-200"}
                                 />
                             </button>
                         ))}
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700 ml-2">Aapka Naam</label>
-                        <input
-                            required
-                            placeholder="E.g. Sumit Kumar"
-                            className="w-full p-4 bg-slate-50 border rounded-2xl outline-none focus:border-blue-500"
-                            onChange={(e) => setName(e.target.value)}
-                        />
+                    <div className="space-y-4">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Aapka Naam</label>
+                            <input
+                                required
+                                placeholder="E.g. Sumit Kumar"
+                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-slate-700"
+                                onChange={(e) => setName(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Aapka Anubhav</label>
+                            <textarea
+                                required
+                                placeholder="Inhone kaisa kaam kiya? (Price, Quality, Behaviour)"
+                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-blue-500 h-32 font-medium text-slate-600 resize-none"
+                                onChange={(e) => setComment(e.target.value)}
+                            />
+                        </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700 ml-2">Review (Kaisa kaam kiya?)</label>
-                        <textarea
-                            placeholder="Inhone mera AC bohot jaldi aur kam daam mein theek kar diya..."
-                            className="w-full p-4 bg-slate-50 border rounded-2xl outline-none focus:border-blue-500 h-32"
-                            onChange={(e) => setComment(e.target.value)}
-                        />
-                    </div>
-
-                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-100 transition-all text-lg uppercase">
-                        Submit My Review
+                    <button disabled={loading} type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-[1000] py-5 rounded-[2rem] shadow-xl shadow-blue-100 transition-all text-sm uppercase tracking-[0.2em] flex items-center justify-center">
+                        {loading ? <Loader2 className="animate-spin" /> : "Submit My Review"}
                     </button>
                 </form>
             </div>
         </div>
     );
 }
-<div className="flex justify-between items-center mb-8">
-    <h3 className="text-2xl font-black text-slate-800">Verified Reviews</h3>
-    <button
-        onClick={() => router.push(`/vendor/${vendor._id}/add-review`)}
-        className="bg-blue-50 text-blue-600 font-bold px-6 py-2 rounded-full border border-blue-100 hover:bg-blue-600 hover:text-white transition-all"
-    >
-        + Add Your Review
-    </button>
-</div>
