@@ -17,8 +17,9 @@ export default function CategoryListingPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const router = useRouter();
 
-    const API_BASE = "http://localhost:5000/api";
-    const IMAGE_BASE = "http://localhost:5000/uploads";
+
+    const API_BASE = "https://api.vister.in/api";
+    const IMAGE_BASE = "https://api.vister.in/uploads";
 
     useEffect(() => {
         const fetchData = async () => {

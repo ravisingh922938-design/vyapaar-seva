@@ -21,7 +21,7 @@ export default function InquiryModal({ selectedCat, isOpen, onClose }: any) {
     });
 
     // ✅ SAHI API BASE PATH (Leads ke liye hamesha leads use karein)
-    const API_BASE = "http://localhost:5000/api/leads";
+    const API_BASE = "https://api.vister.in/api";
 
     // Modal khulne par sab reset karein
     useEffect(() => {

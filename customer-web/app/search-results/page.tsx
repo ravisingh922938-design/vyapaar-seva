@@ -12,7 +12,8 @@ function SearchResultsContent() {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
-    const API_BASE = "http://10.243.86.238:5000/api";
+
+    const API_BASE = "https://api.vister.in/api";
 
     useEffect(() => {
         if (q) {
