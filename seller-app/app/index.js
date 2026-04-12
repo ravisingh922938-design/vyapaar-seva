@@ -1,142 +1,131 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, ActivityIndicator, Alert, StatusBar } from 'react-native';
+import {
+  StyleSheet, Text, View, TextInput, TouchableOpacity,
+  ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Mail, Lock, LogIn, Store } from 'lucide-react-native'; // Icons ke liye
 
 export default function LoginScreen() {
-  const [step, setStep] = useState(1); // 1: Mobile Input, 2: OTP Input
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // BROWSER TESTING KE LIYE LOCALHOST BEST HAI
-  const API_URL = "http://api.vister.in/api";
+  // ✅ LIVE BACKEND URL
+  const API_BASE = "http://localhost:5000/api/vendors";
 
-  // --- STEP 1: MOBILE CHECK AUR OTP BHEJNA ---
-  const handleSendOTP = async () => {
-    if (phone.length !== 10) {
-      alert("Kripya 10-digit mobile number dalo!");
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Rukiye!", "Email aur Password dono bharna zaroori hai.");
       return;
     }
 
     setLoading(true);
     try {
-      // Backend call to send SMS via Fast2SMS
-      const res = await axios.post(`${API_URL}/vendors/login-otp`, { phone });
-      alert("✅ OTP aapke mobile par bhej diya gaya hai.");
-      setStep(2); // OTP screen par le jao
-    } catch (err) {
-      console.log(err);
-      alert(err.response?.data?.message || "Dukan register nahi hai ya server busy hai!");
-    } finally {
-      setLoading(false);
-    }
-  };
+      // ✅ Naya Login Endpoint: /login
+      const res = await axios.post(`${API_BASE}/login`, { email, password });
 
-  // --- STEP 2: OTP VERIFY KARKE DASHBOARD PAR JANA ---
-  const handleVerifyLogin = async () => {
-    if (otp.length < 4) {
-      alert("Sahi OTP dalo bhai!");
-      return;
-    }
+      if (res.data.status === "success") {
+        // Token aur Seller Data ko mobile ki memory me save karein
+        await AsyncStorage.setItem('sellerToken', res.data.token);
+        await AsyncStorage.setItem('sellerData', JSON.stringify(res.data.seller));
 
-    setLoading(true);
-    try {
-      const res = await axios.post(`${API_URL}/vendors/verify-login`, { phone, otp });
-      const vendor = res.data.vendor;
+        Alert.alert("Swagat Hai!", `Welcome back, ${res.data.seller.shopName}`);
 
-      if (vendor) {
-        alert("🎉 Login Successful!");
-        // Dashboard par bhejo saare data ke saath
-        router.push({
-          pathname: '/dashboard',
-          params: {
-            vendorId: vendor._id,
-            vendorName: vendor.name,
-            shop: vendor.shopName,
-            area: vendor.area,
-            balance: vendor.walletBalance.toString()
-          }
-        });
+        // Dashboard par bhej do
+        router.replace('/dashboard');
       }
     } catch (err) {
-      alert("❌ Galat OTP! Terminal mein dekho kya code aaya hai.");
+      console.log("Login error:", err.response?.data);
+      const msg = err.response?.data?.message || "Login fail! Email ya Password check karein.";
+      Alert.alert("Galti!", msg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.container}>
 
-      <View style={styles.headerBox}>
-        <Text style={styles.title}>Vyapaar Seva</Text>
-        <Text style={styles.subtitle}>Seller Control Panel</Text>
-      </View>
+        {/* BRAND LOGO AREA */}
+        <View style={styles.headerArea}>
+          <View style={styles.logoIcon}>
+            <Store size={40} color="#fff" />
+          </View>
+          <Text style={styles.title}>VYAPAAR SATHI</Text>
+          <Text style={styles.subtitle}>Seller Control Panel</Text>
+        </View>
 
-      {/* --- STEP 1: MOBILE NUMBER --- */}
-      {step === 1 && (
-        <View style={styles.form}>
-          <Text style={styles.label}>Enter Mobile Number</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="92293XXXXX"
-            keyboardType="phone-pad"
-            value={phone}
-            onChangeText={setPhone}
-            maxLength={10}
-          />
-          <TouchableOpacity style={styles.button} onPress={handleSendOTP} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>SEND OTP</Text>}
+        {/* LOGIN FORM */}
+        <View style={styles.card}>
+          <View style={styles.inputBox}>
+            <Mail size={20} color="#94a3b8" style={styles.icon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Email Address"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+            />
+          </View>
+
+          <View style={styles.inputBox}>
+            <Lock size={20} color="#94a3b8" style={styles.icon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+          </View>
+
+          <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <LogIn size={20} color="#fff" style={{ marginRight: 10 }} />
+                <Text style={styles.btnText}>LOGIN NOW</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* REGISTER LINK */}
+          <TouchableOpacity
+            style={styles.registerLink}
+            onPress={() => router.push('/register')}
+          >
+            <Text style={styles.linkText}>
+              Naye Seller hain? <Text style={{ color: '#2563eb', fontWeight: '800' }}>Register Karein</Text>
+            </Text>
           </TouchableOpacity>
         </View>
-      )}
 
-      {/* --- STEP 2: OTP VERIFICATION --- */}
-      {step === 2 && (
-        <View style={styles.form}>
-          <Text style={styles.label}>Enter 4-Digit OTP</Text>
-          <TextInput
-            style={[styles.input, { textAlign: 'center', fontSize: 32, letterSpacing: 10 }]}
-            placeholder="0000"
-            keyboardType="number-pad"
-            value={otp}
-            onChangeText={setOtp}
-            maxLength={4}
-          />
-          <TouchableOpacity style={[styles.button, { backgroundColor: '#28a745' }]} onPress={handleVerifyLogin} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>VERIFY & LOGIN</Text>}
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setStep(1)} style={{ marginTop: 15 }}>
-            <Text style={{ color: '#666', textAlign: 'center' }}>Change Number</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {step === 1 && (
-        <TouchableOpacity onPress={() => router.push('/register')} style={styles.registerLink}>
-          <Text style={styles.registerText}>Naye Seller hain? <Text style={{ fontWeight: 'bold' }}>Register karein</Text></Text>
-        </TouchableOpacity>
-      )}
-
-      <Text style={styles.footer}>Vister Technologies © 2026</Text>
-    </View>
+        <Text style={styles.footerText}>Powered by Vister Technologies</Text>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9f9f9', padding: 25, justifyContent: 'center' },
-  headerBox: { alignItems: 'center', marginBottom: 50 },
-  title: { fontSize: 36, fontWeight: '900', color: '#002D62' },
-  subtitle: { fontSize: 16, color: '#666', marginTop: 5 },
-  form: { width: '100%' },
-  label: { fontSize: 14, fontWeight: 'bold', color: '#888', marginBottom: 10, marginLeft: 5 },
-  input: { width: '100%', height: 60, backgroundColor: '#fff', borderRadius: 15, paddingHorizontal: 20, fontSize: 18, marginBottom: 20, borderWidth: 1, borderColor: '#eee' },
-  button: { width: '100%', height: 60, backgroundColor: '#007bff', borderRadius: 15, alignItems: 'center', justifyContent: 'center', elevation: 3 },
-  btnText: { color: '#fff', fontSize: 18, fontWeight: 'bold', letterSpacing: 1 },
-  registerLink: { marginTop: 30, alignItems: 'center' },
-  registerText: { color: '#007bff', fontSize: 14 },
-  footer: { position: 'absolute', bottom: 30, alignSelf: 'center', color: '#ccc', fontSize: 12 }
+  container: { flexGrow: 1, backgroundColor: '#f8fafc', padding: 25, justifyContent: 'center' },
+  headerArea: { alignItems: 'center', marginBottom: 40 },
+  logoIcon: { backgroundColor: '#2563eb', padding: 15, borderRadius: 20, marginBottom: 15, elevation: 5 },
+  title: { fontSize: 28, fontWeight: '900', color: '#1e293b', letterSpacing: -1 },
+  subtitle: { fontSize: 12, color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 2 },
+  card: { backgroundColor: '#fff', borderRadius: 30, padding: 25, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 5 },
+  inputBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 15, paddingHorizontal: 15, marginBottom: 15, height: 60 },
+  icon: { marginRight: 10 },
+  input: { flex: 1, fontSize: 16, fontWeight: '600', color: '#334155' },
+  button: { width: '100%', height: 65, backgroundColor: '#2563eb', borderRadius: 20, alignItems: 'center', justifyContent: 'center', shadowColor: '#2563eb', shadowOpacity: 0.3, shadowRadius: 10, elevation: 8, marginTop: 10 },
+  btnText: { color: '#fff', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
+  registerLink: { marginTop: 25, alignItems: 'center' },
+  linkText: { fontSize: 14, color: '#64748b', fontWeight: '600' },
+  footerText: { textAlign: 'center', marginTop: 50, fontSize: 10, color: '#cbd5e1', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }
 });

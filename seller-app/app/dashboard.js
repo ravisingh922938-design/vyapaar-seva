@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, ScrollView, StatusBar, Dimensions } from 'react-native';
+import {
+    View, Text, StyleSheet, FlatList, TouchableOpacity,
+    Alert, ActivityIndicator, ScrollView, StatusBar, Dimensions
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Zaroori import
 
 const { width } = Dimensions.get('window');
 
@@ -11,6 +15,7 @@ export default function AppMasterDashboard() {
     const params = useLocalSearchParams();
     const router = useRouter();
 
+    // Setup IDs and Params
     const VENDOR_ID = params.vendorId || "69ce13032320d8c2c0ea99c6";
     const { vendorName, shop, area } = params;
 
@@ -19,7 +24,7 @@ export default function AppMasterDashboard() {
     const [leads, setLeads] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // ✅ SAHI IP ADDRESS (Aapke ipconfig ke anusar)
+    // ✅ API URL
     const API_BASE = "http://10.44.111.238:5000/api";
 
     useEffect(() => {
@@ -43,20 +48,36 @@ export default function AppMasterDashboard() {
         try {
             const res = await axios.post(`${API_BASE}/vendors/unlock-lead`, { vendorId: VENDOR_ID, leadId });
             Alert.alert("✅ Lead Unlocked", `Grahak ka Number: ${res.data.customerPhone}`);
-            fetchData(); // Balance update karne ke liye
+            fetchData();
         } catch (error) {
             Alert.alert("❌ Low Balance", "Kripya apna wallet recharge karein.");
         }
     };
 
-    const handleLogout = () => {
-        Alert.alert("Logout", "Kya aap bahar nikalna chahte hain?", [
-            { text: "Nahi" },
-            { text: "Logout", onPress: () => router.replace('/') }
-        ]);
+    // --- 🚪 LOGOUT LOGIC (As per your request) ---
+    const handleLogout = async () => {
+        Alert.alert(
+            "Logout",
+            "Kya aap Vyapaar Sathi se bahar nikalna chahte hain?",
+            [
+                { text: "Nahi", style: "cancel" },
+                {
+                    text: "Logout",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await AsyncStorage.clear(); // Saara data clear karein
+                            router.replace('/'); // Login screen par wapas
+                        } catch (e) {
+                            console.log("Logout error:", e);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
-    // --- REUSABLE FEATURE BUTTON ---
+    // --- 🛠️ FEATURE BUTTON COMPONENT ---
     const FeatureBtn = ({ title, icon, lib, path, color }) => {
         const IconLib = lib;
         return (
@@ -72,11 +93,12 @@ export default function AppMasterDashboard() {
         );
     };
 
+    // --- 🏗️ HEADER CONTENT (Banners + Grid + Wallet) ---
     const renderHeader = () => (
         <View style={{ backgroundColor: '#F8F9FB' }}>
             <StatusBar barStyle="light-content" />
 
-            {/* 1. TOP PREMIUM HEADER */}
+            {/* 1. TOP SECTION */}
             <LinearGradient colors={['#002D62', '#0056b3']} style={styles.topSection}>
                 <View style={styles.userInfo}>
                     <TouchableOpacity onPress={() => router.push('/profile')} style={styles.avatar}>
@@ -124,7 +146,7 @@ export default function AppMasterDashboard() {
                 </TouchableOpacity>
             </ScrollView>
 
-            {/* 4. MAIN TOOLS GRID (ALL 23 FEATURES) */}
+            {/* 4. BUSINESS SUPER TOOLS GRID (ALL 16 TOOLS) */}
             <View style={styles.whiteBox}>
                 <Text style={styles.sectionTitle}>Business Super Tools</Text>
                 <View style={styles.grid}>
@@ -147,7 +169,7 @@ export default function AppMasterDashboard() {
                 </View>
             </View>
 
-            {/* 5. LEADS TAB */}
+            {/* 5. LEADS TAB SELECTION */}
             <View style={styles.tabContainer}>
                 <TouchableOpacity style={[styles.tab, activeTab === 'new' && styles.activeTab]} onPress={() => setActiveTab('new')}>
                     <Text style={[styles.tabText, activeTab === 'new' && styles.activeTabText]}>Naye Grahak</Text>
@@ -174,7 +196,6 @@ export default function AppMasterDashboard() {
                         <Text style={styles.custName}>{item.customerName}</Text>
                         <Text style={styles.custDesc}>{item.description}</Text>
 
-                        {/* 🔥 FIXED LOGIC FOR BUTTONS */}
                         {activeTab === 'new' ? (
                             <TouchableOpacity
                                 style={[styles.actionBtn, { backgroundColor: '#00C853' }]}
@@ -196,7 +217,7 @@ export default function AppMasterDashboard() {
                 contentContainerStyle={{ paddingBottom: 100 }}
             />
 
-            {/* --- BOTTOM NAVBAR --- */}
+            {/* --- 📱 BOTTOM NAVBAR (All icons kept) --- */}
             <View style={styles.navbar}>
                 <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/dashboard')}>
                     <Ionicons name="home" size={24} color="#002D62" />
@@ -219,6 +240,7 @@ export default function AppMasterDashboard() {
     );
 }
 
+// --- 🎨 STYLES (No Changes Made) ---
 const styles = StyleSheet.create({
     mainWrapper: { flex: 1, backgroundColor: '#F8F9FB' },
     topSection: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 70, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -229,7 +251,6 @@ const styles = StyleSheet.create({
     areaTag: { color: '#FFD700', fontSize: 11, fontWeight: 'bold', marginTop: 2 },
     headerIcons: { flexDirection: 'row', gap: 15 },
     notifBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
-
     walletCard: { backgroundColor: '#fff', marginHorizontal: 20, marginTop: -45, borderRadius: 24, padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', elevation: 10 },
     walletLabel: { color: '#888', fontSize: 10, fontWeight: 'bold', letterSpacing: 1 },
     walletAmount: { color: '#002D62', fontSize: 32, fontWeight: 'bold' },
@@ -237,25 +258,21 @@ const styles = StyleSheet.create({
     rechargeBtn: { borderRadius: 16, overflow: 'hidden', elevation: 5 },
     rechargeGrad: { paddingHorizontal: 15, paddingVertical: 12, flexDirection: 'row', alignItems: 'center' },
     rechargeBtnText: { color: 'white', fontWeight: 'bold', marginLeft: 5, fontSize: 12 },
-
     bannerScroll: { paddingLeft: 20, marginTop: 20 },
     banner: { width: 200, padding: 15, borderRadius: 20, marginRight: 12, borderLeftWidth: 5, justifyContent: 'center' },
     bannerTitle: { fontSize: 14, fontWeight: 'bold', color: '#856404' },
     bannerSub: { fontSize: 10, color: '#856404', opacity: 0.7 },
-
     whiteBox: { backgroundColor: 'white', marginTop: 20, marginHorizontal: 20, borderRadius: 30, padding: 20, borderBottomWidth: 1, borderBottomColor: '#eee' },
     sectionTitle: { fontSize: 15, fontWeight: 'bold', color: '#333', marginBottom: 20 },
     grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
     gridItem: { width: '23%', alignItems: 'center', marginBottom: 20 },
     iconCircle: { width: 50, height: 50, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
     gridLabel: { fontSize: 9, color: '#444', fontWeight: 'bold', marginTop: 8, textAlign: 'center' },
-
     tabContainer: { flexDirection: 'row', marginHorizontal: 20, marginTop: 20, backgroundColor: '#EDF2F7', borderRadius: 15, padding: 5 },
     tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 12 },
     activeTab: { backgroundColor: 'white', elevation: 3 },
     tabText: { fontSize: 13, color: '#718096', fontWeight: 'bold' },
     activeTabText: { color: '#002D62' },
-
     leadCard: { backgroundColor: 'white', marginHorizontal: 20, marginTop: 15, padding: 20, borderRadius: 25, elevation: 3, borderLeftWidth: 1, borderLeftColor: '#eee' },
     leadHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
     verifiedBadge: { backgroundColor: '#E8F5E9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 5 },
@@ -265,7 +282,6 @@ const styles = StyleSheet.create({
     custDesc: { fontSize: 13, color: '#718096', marginVertical: 10 },
     actionBtn: { padding: 15, borderRadius: 15, alignItems: 'center' },
     actionBtnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
-
     navbar: { flexDirection: 'row', backgroundColor: '#fff', position: 'absolute', bottom: 0, width: '100%', paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#EEE', justifyContent: 'space-around', elevation: 20 },
     navItem: { alignItems: 'center' },
     navText: { fontSize: 10, marginTop: 4, fontWeight: 'bold', color: '#666' },

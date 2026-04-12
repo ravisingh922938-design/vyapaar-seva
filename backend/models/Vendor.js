@@ -8,12 +8,25 @@ const VendorSchema = new mongoose.Schema({
     },
     shopName: {
         type: String,
-        required: true // इसे ज़रूरी (Required) कर दिया है
+        required: true
     },
     phone: {
         type: String,
         required: true,
         unique: true
+    },
+    // ✅ EMAIL (Naya Field - Login ke liye)
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true
+    },
+    // ✅ PASSWORD (Naya Field - Hashed form me save hoga)
+    password: {
+        type: String,
+        required: true
     },
     category: {
         type: mongoose.Schema.Types.ObjectId,
@@ -25,9 +38,9 @@ const VendorSchema = new mongoose.Schema({
         required: true
     },
 
-    // --- !!! यह सबसे ज़रूरी है (यही गायब था) !!! ---
+    // --- PHOTO INFO ---
     shopImage: {
-        type: String, // मुख्य फोटो का नाम यहाँ सेव होगा
+        type: String,
         default: ""
     },
 
@@ -98,18 +111,16 @@ const VendorSchema = new mongoose.Schema({
         type: String,
         default: ""
     },
-    images: [{ // ये गैलरी के लिए इस्तेमाल होगा
+    images: [{
         type: String
     }],
 
-    // Detailed Services
     services: [{
         serviceName: { type: String },
         price: { type: Number },
         description: { type: String }
     }],
 
-    // Keywords for Search
     keywords: [{
         type: String
     }],

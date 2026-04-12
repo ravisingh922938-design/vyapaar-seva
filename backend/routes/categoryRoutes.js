@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const categoryController = require('../controllers/categoryController');
 
-// URL: http://api.vister.in/api/categories/seed
+// URL: http://localhost:5000/api/categories/seed
 router.get('/seed', categoryController.seedCategories);
 
-// URL: http://api.vister.in/api/categories
+// URL: http://localhost:5000/api/categories
 router.get('/', categoryController.getCategories);
 
 module.exports = router;

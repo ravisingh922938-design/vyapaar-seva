@@ -9,7 +9,7 @@ router.post('/send-otp', leadController.sendOTP);
 router.post('/verify-lead', leadController.verifyAndCreateLead);
 
 // 3. SARE LEADS DEKHNE KE LIYE (Admin Panel isi ko dhoondh raha hai)
-// URL banega: http://api.vister.in/api/leads
+// URL banega: http://localhost:5000/api/leads
 router.get('/', leadController.getAllLeads);
 
 module.exports = router;

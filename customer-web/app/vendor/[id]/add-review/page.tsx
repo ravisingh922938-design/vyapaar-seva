@@ -14,7 +14,7 @@ export default function AddReview() {
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
 
-    const API_BASE = "https://api.vister.in/api"; // Always use localhost for testing
+    const API_BASE = "http://localhost:5000/api/api"; // Always use localhost for testing
 
     const handleSubmit = async (e: any) => {
         e.preventDefault();

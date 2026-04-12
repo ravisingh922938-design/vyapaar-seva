@@ -7,7 +7,7 @@ export default function AdminPanel() {
     const [allLeads, setAllLeads] = useState([]);
     const [amount, setAmount] = useState<{ [key: string]: number }>({});
     const [loading, setLoading] = useState(true);
-    const API_BASE = "https://api.vister.in/api";
+    const API_BASE = "http://localhost:5000/api/api";
 
     // 1. Data Fetch Karne ka function
     const fetchData = async () => {

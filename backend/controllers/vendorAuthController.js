@@ -1,17 +1,96 @@
 const Vendor = require('../models/Vendor');
 const Transaction = require('../models/Transaction');
 
-// 1. Get All Vendors (Admin / General List)
-exports.getAllVendors = async (req, res) => {
+// ============================================================
+// 1. SELLER REGISTRATION (With Photo & Referral)
+// ============================================================
+exports.registerVendor = async (req, res) => {
     try {
-        const vendors = await Vendor.find().populate('category');
-        res.json(vendors);
+        const { name, shopName, phone, category, area, description, referredBy } = req.body;
+
+        // Photo check (Multer se aayegi)
+        const imagePath = req.file ? req.file.filename : "";
+
+        // Check if number already exists
+        const existingVendor = await Vendor.findOne({ phone: phone.replace(/\D/g, '').slice(-10) });
+        if (existingVendor) return res.status(400).json({ message: "Mobile Number already registered!" });
+
+        const myReferralCode = "VISTER" + Math.floor(1000 + Math.random() * 9000);
+
+        const newVendor = new Vendor({
+            name,
+            shopName,
+            phone: phone.replace(/\D/g, '').slice(-10),
+            category,
+            area,
+            description,
+            shopImage: imagePath,
+            walletBalance: 0,
+            referralCode: myReferralCode,
+            referredBy: referredBy || ""
+        });
+
+        await newVendor.save();
+
+        // Referral Bonus logic
+        if (referredBy) {
+            const referrer = await Vendor.findOne({ referralCode: referredBy });
+            if (referrer) {
+                referrer.walletBalance += 100;
+                referrer.totalReferrals += 1;
+                await referrer.save();
+                await Transaction.create({
+                    vendorId: referrer._id,
+                    amount: 100,
+                    type: 'credit',
+                    description: `Referral Bonus: ${name} Joined`
+                });
+            }
+        }
+
+        res.status(201).json({
+            status: "success",
+            message: "Vendor Registered Successfully!",
+            vendor: newVendor
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-// 2. Get Single Vendor Details
+// ============================================================
+// 2. SELLER LOGIN (Bina OTP - Direct Login)
+// ============================================================
+exports.loginVendor = async (req, res) => {
+    try {
+        const { phone } = req.body;
+        if (!phone) return res.status(400).json({ message: "Phone number zaroori hai!" });
+
+        // Phone number saaf karo aur database me dhundo
+        const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+        const seller = await Vendor.findOne({ phone: cleanPhone });
+
+        if (seller) {
+            console.log(`✅ Seller Logged In: ${seller.shopName}`);
+            res.status(200).json({
+                status: "success",
+                message: "Login Successful!",
+                seller
+            });
+        } else {
+            res.status(404).json({
+                status: "error",
+                message: "Ye number register nahi hai. Pehle Free Listing karein."
+            });
+        }
+    } catch (err) {
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// ============================================================
+// 3. SEARCH & PROFILE DETAILS
+// ============================================================
 exports.getVendorDetails = async (req, res) => {
     try {
         const vendor = await Vendor.findById(req.params.id).populate('category').select('-walletBalance');
@@ -25,37 +104,6 @@ exports.getVendorDetails = async (req, res) => {
     }
 };
 
-// 3. Register New Vendor (With Photo & Referral)
-exports.registerVendor = async (req, res) => {
-    try {
-        const { name, shopName, phone, category, area, description, referredBy } = req.body;
-
-        // पक्का करें कि Multer से फाइल आ रही है
-        const imagePath = req.file ? req.file.filename : "";
-
-        const existingVendor = await Vendor.findOne({ phone });
-        if (existingVendor) return res.status(400).json({ message: "Mobile Number already registered!" });
-
-        const newVendor = new Vendor({
-            name,
-            shopName,
-            phone,
-            category,
-            area,
-            description,
-            shopImage: imagePath, // फोटो यहाँ सेव हो रही है
-            referralCode: "VISTER" + Math.floor(1000 + Math.random() * 9000),
-            referredBy: referredBy || ""
-        });
-
-        await newVendor.save();
-        res.status(201).json({ message: "Vendor Registered Successfully!", vendor: newVendor });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-// 4. Search Vendors (Category/Area/Query Wise) - FIXED
 exports.searchVendors = async (req, res) => {
     try {
         const { query, area, categoryId } = req.query;
@@ -70,29 +118,34 @@ exports.searchVendors = async (req, res) => {
             ];
         }
 
-        // यहाँ से सारा डेटा (shopImage के साथ) निकलेगा
         const vendors = await Vendor.find(filter).sort({ isVerified: -1 });
-
-        // Debugging: टर्मिनल में चेक करें कि क्या डेटा में shopImage है?
-        console.log(`Found ${vendors.length} vendors for search. Example Image:`, vendors[0]?.shopImage);
-
         res.json(vendors);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 };
 
-// 5. Update Vendor Profile
+exports.getAllVendors = async (req, res) => {
+    try {
+        const vendors = await Vendor.find().populate('category');
+        res.json(vendors);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// ============================================================
+// 4. PROFILE UPDATE & KYC
+// ============================================================
 exports.updateProfile = async (req, res) => {
     try {
-        const updated = await Vendor.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
-        res.json({ message: "Updated!", updated });
+        const updatedVendor = await Vendor.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
+        res.json({ message: "Profile Updated Successfully!", vendor: updatedVendor });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 };
 
-// 6. Submit KYC
 exports.submitKYC = async (req, res) => {
     try {
         const updated = await Vendor.findByIdAndUpdate(req.body.vendorId, { kycStatus: 'Pending' }, { new: true });
