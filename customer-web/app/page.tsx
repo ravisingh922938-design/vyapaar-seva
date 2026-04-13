@@ -24,7 +24,7 @@ export default function FinalJustdialHome() {
   const router = useRouter();
 
   // --- सबसे ज़रूरी: LOCALHOST इस्तेमाल करें ताकि Network Error न आए ---
-  const API_BASE = "http://localhost:5000/api";
+  const API_BASE = "https://api.vister.in/api";
 
 
   // 1. डेटाबेस से कैटेगरीज लोड करना
