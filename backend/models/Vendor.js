@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const VendorSchema = new mongoose.Schema({
-    // --- 1. BASIC REGISTRATION INFO ---
+    // --- 1. BASIC & AUTH INFO ---
     name: {
         type: String,
         required: true
@@ -15,7 +15,6 @@ const VendorSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
-    // ✅ EMAIL (Naya Field - Login ke liye)
     email: {
         type: String,
         required: true,
@@ -23,11 +22,16 @@ const VendorSchema = new mongoose.Schema({
         lowercase: true,
         trim: true
     },
-    // ✅ PASSWORD (Naya Field - Hashed form me save hoga)
     password: {
         type: String,
         required: true
     },
+    pincode: {
+        type: String,
+        required: true
+    }, // 🔥 Pincode wise lead filtering ke liye zaroori hai
+
+    // --- 2. CATEGORY & LOCATION ---
     category: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Category',
@@ -37,17 +41,43 @@ const VendorSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-
-    // --- PHOTO INFO ---
     shopImage: {
         type: String,
         default: ""
     },
 
-    // --- 2. WALLET & VERIFICATION ---
+    // --- 3. SALESMAN MANAGEMENT (Claim & Note System) ---
+    // ✅ SALESMAN HELP: Kaunsa boy is dukan ko sambhal raha hai
+    assignedSalesman: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Salesman',
+        default: null
+    },
+    // ✅ Pata chalega dukan pool me hai ya kisi ne lock kar li hai
+    isClaimed: {
+        type: Boolean,
+        default: false
+    },
+    // ✅ DIGITAL NOTEPAD: Salesman aur Seller ki baatchit ka record
+    salesNotes: [{
+        note: { type: String },
+        salesmanId: { type: String },
+        salesmanName: { type: String },
+        date: { type: Date, default: Date.now }
+    }],
+
+    // --- 4. WALLET & RECHARGE STATUS ---
     walletBalance: {
         type: Number,
         default: 0
+    },
+    // Pata chalega dukan ne kabhi asli paisa diya ya nahi
+    hasRecharged: {
+        type: Boolean,
+        default: false
+    },
+    lastRechargeDate: {
+        type: Date
     },
     isVerified: {
         type: Boolean,
@@ -58,7 +88,7 @@ const VendorSchema = new mongoose.Schema({
         default: 50
     },
 
-    // --- 3. MEMBERSHIP & PROMOTION ---
+    // --- 5. MEMBERSHIP & KYC ---
     membershipPlan: {
         type: String,
         enum: ['Free', 'Gold', 'Platinum'],
@@ -68,8 +98,6 @@ const VendorSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-
-    // --- 4. KYC & DOCUMENTS ---
     kycStatus: {
         type: String,
         enum: ['Not Submitted', 'Pending', 'Verified', 'Rejected'],
@@ -81,7 +109,7 @@ const VendorSchema = new mongoose.Schema({
         businessLicense: { type: String }
     },
 
-    // --- 5. REFERRAL SYSTEM ---
+    // --- 6. REFERRAL & CATALOG ---
     referralCode: {
         type: String,
         unique: true
@@ -93,8 +121,6 @@ const VendorSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-
-    // --- 6. ADVANCED PROFILE & CATALOG ---
     description: {
         type: String,
         default: "Patna's best service provider."
@@ -111,21 +137,15 @@ const VendorSchema = new mongoose.Schema({
         type: String,
         default: ""
     },
-    images: [{
-        type: String
-    }],
-
+    images: [{ type: String }],
     services: [{
         serviceName: { type: String },
         price: { type: Number },
         description: { type: String }
     }],
+    keywords: [{ type: String }],
 
-    keywords: [{
-        type: String
-    }],
-
-    // --- 7. ANALYTICS ---
+    // --- 7. ANALYTICS & SYSTEM ---
     profileViews: {
         type: Number,
         default: 0
@@ -134,8 +154,6 @@ const VendorSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-
-    // --- 8. SYSTEM INFO ---
     createdAt: {
         type: Date,
         default: Date.now

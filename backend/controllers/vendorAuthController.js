@@ -1,38 +1,52 @@
 const Vendor = require('../models/Vendor');
 const Transaction = require('../models/Transaction');
+const bcrypt = require('bcryptjs'); // Password secure karne ke liye
+const jwt = require('jsonwebtoken');
 
 // ============================================================
-// 1. SELLER REGISTRATION (With Photo & Referral)
+// 1. SELLER REGISTRATION (Photo + Email/Pass + Salesman Logic)
 // ============================================================
 exports.registerVendor = async (req, res) => {
     try {
-        const { name, shopName, phone, category, area, description, referredBy } = req.body;
+        const { name, shopName, phone, email, password, category, area, pincode, description, referredBy, salesmanId } = req.body;
 
-        // Photo check (Multer se aayegi)
+        // 📸 Photo check (Multer se aayegi)
         const imagePath = req.file ? req.file.filename : "";
 
-        // Check if number already exists
-        const existingVendor = await Vendor.findOne({ phone: phone.replace(/\D/g, '').slice(-10) });
-        if (existingVendor) return res.status(400).json({ message: "Mobile Number already registered!" });
+        // 🛡️ Phone number clean karein
+        const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+
+        // 🔍 Check karein ki user pehle se hai ya nahi
+        const existingVendor = await Vendor.findOne({ $or: [{ phone: cleanPhone }, { email: email.toLowerCase() }] });
+        if (existingVendor) return res.status(400).json({ status: "error", message: "Mobile ya Email pehle se register hai!" });
+
+        // 🔐 Password secure karein
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         const myReferralCode = "VISTER" + Math.floor(1000 + Math.random() * 9000);
 
         const newVendor = new Vendor({
             name,
             shopName,
-            phone: phone.replace(/\D/g, '').slice(-10),
+            phone: cleanPhone,
+            email: email.toLowerCase(),
+            password: hashedPassword,
             category,
             area,
-            description,
-            shopImage: imagePath,
+            pincode,
+            description: description || "Patna local expert.",
+            shopImage: imagePath, // Photo path save ho raha hai
             walletBalance: 0,
             referralCode: myReferralCode,
-            referredBy: referredBy || ""
+            referredBy: referredBy || "",
+            // 🔥 Salesman Logic: Agar salesman ne add kiya hai toh auto-claim kar do
+            assignedSalesman: salesmanId || null,
+            isClaimed: salesmanId ? true : false
         });
 
         await newVendor.save();
 
-        // Referral Bonus logic
+        // 💰 Referral Bonus logic (Agar kisi ke link se aaya hai)
         if (referredBy) {
             const referrer = await Vendor.findOne({ referralCode: referredBy });
             if (referrer) {
@@ -54,103 +68,84 @@ exports.registerVendor = async (req, res) => {
             vendor: newVendor
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error("Reg Error:", error.message);
+        res.status(500).json({ status: "error", message: error.message });
     }
 };
 
 // ============================================================
-// 2. SELLER LOGIN (Bina OTP - Direct Login)
+// 2. SELLER LOGIN (Email & Password)
 // ============================================================
 exports.loginVendor = async (req, res) => {
     try {
-        const { phone } = req.body;
-        if (!phone) return res.status(400).json({ message: "Phone number zaroori hai!" });
+        const { email, password } = req.body;
+        if (!email || !password) return res.status(400).json({ message: "Email aur Password dono chahiye!" });
 
-        // Phone number saaf karo aur database me dhundo
-        const cleanPhone = phone.replace(/\D/g, '').slice(-10);
-        const seller = await Vendor.findOne({ phone: cleanPhone });
+        const seller = await Vendor.findOne({ email: email.toLowerCase() });
+        if (!seller) return res.status(404).json({ status: "error", message: "Email registered nahi hai!" });
 
-        if (seller) {
-            console.log(`✅ Seller Logged In: ${seller.shopName}`);
-            res.status(200).json({
-                status: "success",
-                message: "Login Successful!",
-                seller
-            });
-        } else {
-            res.status(404).json({
-                status: "error",
-                message: "Ye number register nahi hai. Pehle Free Listing karein."
-            });
-        }
+        const isMatch = await bcrypt.compare(password, seller.password);
+        if (!isMatch) return res.status(400).json({ status: "error", message: "Galti! Password galat hai." });
+
+        const token = jwt.sign(
+            { id: seller._id },
+            process.env.JWT_SECRET || 'vister_secret_key',
+            { expiresIn: '7d' }
+        );
+
+        res.status(200).json({
+            status: "success",
+            token,
+            seller: { id: seller._id, shopName: seller.shopName, email: seller.email }
+        });
     } catch (err) {
-        res.status(500).json({ message: "Server error" });
+        res.status(500).json({ status: "error", message: "Login Fail" });
     }
 };
 
 // ============================================================
-// 3. SEARCH & PROFILE DETAILS
+// 3. SEARCH & PROFILE FUNCTIONS
 // ============================================================
 exports.getVendorDetails = async (req, res) => {
     try {
-        const vendor = await Vendor.findById(req.params.id).populate('category').select('-walletBalance');
+        const vendor = await Vendor.findById(req.params.id).populate('category').select('-password');
         if (!vendor) return res.status(404).json({ message: "Vendor not found!" });
-
         vendor.profileViews += 1;
         await vendor.save();
         res.json(vendor);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
+    } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
 exports.searchVendors = async (req, res) => {
     try {
         const { query, area, categoryId } = req.query;
         let filter = {};
-
         if (categoryId) filter.category = categoryId;
         if (area) filter.area = area;
-        if (query) {
-            filter.$or = [
-                { shopName: { $regex: query, $options: 'i' } },
-                { description: { $regex: query, $options: 'i' } }
-            ];
-        }
+        if (query) filter.shopName = { $regex: query, $options: 'i' };
 
         const vendors = await Vendor.find(filter).sort({ isVerified: -1 });
         res.json(vendors);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
+    } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
 exports.getAllVendors = async (req, res) => {
     try {
-        const vendors = await Vendor.find().populate('category');
+        const vendors = await Vendor.find().populate('category').select('-password');
         res.json(vendors);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+    } catch (error) { res.status(500).json({ message: error.message }); }
 };
 
-// ============================================================
-// 4. PROFILE UPDATE & KYC
-// ============================================================
 exports.updateProfile = async (req, res) => {
     try {
-        const updatedVendor = await Vendor.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
-        res.json({ message: "Profile Updated Successfully!", vendor: updatedVendor });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
+        const updated = await Vendor.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
+        res.json({ status: "success", vendor: updated });
+    } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
 exports.submitKYC = async (req, res) => {
     try {
         const updated = await Vendor.findByIdAndUpdate(req.body.vendorId, { kycStatus: 'Pending' }, { new: true });
-        res.json({ message: "KYC Pending Review", updated });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
+        res.json({ status: "success", message: "KYC Pending Review" });
+    } catch (err) { res.status(500).json({ message: err.message }); }
 };

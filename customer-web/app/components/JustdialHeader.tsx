@@ -3,10 +3,10 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Search, MapPin, Mic, Bell,
-    ChevronDown, Megaphone, LayoutGrid
+    ChevronDown, Megaphone, LayoutGrid, Globe
 } from 'lucide-react';
 
-// Props Interface: इसमें 'onSearch' को जोड़ा गया है ताकि होम पेज के आइकॉन फिल्टर हो सकें
+// Props Interface: ताकि होम पेज के आइकन्स फिल्टर हो सकें
 interface HeaderProps {
     onSearch?: (val: string) => void;
 }
@@ -23,8 +23,8 @@ export default function JustdialHeader({ onSearch }: HeaderProps) {
         }
     };
 
-    // 2. फाइनल सर्च (Enter दबाने पर Search Results पेज पर जाने के लिए)
-    const handleFinalSearch = (e: any) => {
+    // 2. फाइनल सर्च (बटन दबाने पर Search Results पेज पर जाने के लिए)
+    const handleFinalSearch = (e?: any) => {
         if (e) e.preventDefault();
         if (query.trim()) {
             router.push(`/search-results?q=${encodeURIComponent(query)}`);
@@ -40,18 +40,27 @@ export default function JustdialHeader({ onSearch }: HeaderProps) {
                     <Globe size={12} /> EN <ChevronDown size={10} />
                 </div>
 
-                <span className="text-[11px] text-slate-500 font-medium cursor-pointer hover:text-blue-600">We are Hiring</span>
-                <span className="text-[11px] text-slate-500 font-medium cursor-pointer hover:text-blue-600">Investor Relations</span>
+                {/* Hiring Button */}
+                <span
+                    onClick={() => router.push('/hiring')}
+                    className="text-[11px] text-slate-500 font-medium cursor-pointer hover:text-blue-600 transition-colors"
+                >
+                    We are Hiring
+                </span>
 
-                {/* --- LEADS BUTTON (Points to Seller Login) --- */}
+                <span className="text-[11px] text-slate-500 font-medium cursor-pointer hover:text-blue-600">
+                    Investor Relations
+                </span>
+
+                {/* Leads Button (Points to Seller Login) */}
                 <div
                     onClick={() => router.push('/seller/login')}
                     className="flex items-center gap-1 bg-white border border-slate-300 px-2 py-0.5 rounded shadow-sm cursor-pointer hover:bg-slate-50 transition-all"
                 >
-                    <span className="text-[11px] font-bold">📢 Leads</span>
+                    <span className="text-[11px] font-bold text-slate-700">📢 Leads</span>
                 </div>
 
-                {/* --- ADVERTISE BUTTON --- */}
+                {/* Advertise Button */}
                 <div
                     onClick={() => router.push('/advertise')}
                     className="flex items-center gap-1 text-[11px] text-slate-600 font-bold cursor-pointer hover:text-blue-600 transition-all"
@@ -59,7 +68,7 @@ export default function JustdialHeader({ onSearch }: HeaderProps) {
                     <Megaphone size={12} /> Advertise
                 </div>
 
-                {/* --- FREE LISTING --- */}
+                {/* Free Listing Button */}
                 <div className="relative cursor-pointer group" onClick={() => router.push('/free-listing')}>
                     <span className="absolute -top-3 left-0 bg-red-600 text-white text-[8px] px-1 font-black rounded uppercase scale-75">Business</span>
                     <span className="text-[11px] text-slate-600 font-bold flex items-center gap-1">
@@ -79,7 +88,7 @@ export default function JustdialHeader({ onSearch }: HeaderProps) {
                     VYAPAAR<span className="text-slate-800">SEVA</span>
                 </h1>
 
-                {/* Customer Login / Sign Up */}
+                {/* Login Button */}
                 <button
                     onClick={() => router.push('/auth')}
                     className="bg-[#0076d7] hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-black uppercase text-xs tracking-wider transition-all shadow-md active:scale-95"
@@ -121,9 +130,9 @@ export default function JustdialHeader({ onSearch }: HeaderProps) {
                             <Mic size={18} className="text-blue-500 cursor-pointer hover:scale-110 ml-2" />
                         </div>
 
-                        {/* Search Button */}
+                        {/* Orange Search Button */}
                         <button
-                            onClick={handleFinalSearch}
+                            onClick={() => handleFinalSearch()}
                             className="bg-[#ff6a00] hover:bg-orange-600 px-5 py-3 flex items-center justify-center transition-colors"
                         >
                             <Search size={20} color="white" strokeWidth={3} />
@@ -133,9 +142,4 @@ export default function JustdialHeader({ onSearch }: HeaderProps) {
             </div>
         </div>
     );
-}
-
-// Globe Icon helper function
-function Globe({ size, className }: any) {
-    return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>;
 }
