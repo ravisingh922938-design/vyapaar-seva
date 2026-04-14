@@ -15,7 +15,7 @@ export default function LoginScreen() {
   const router = useRouter();
 
   // ✅ LIVE BACKEND URL
-  const API_BASE = "http://localhost:5000/api/vendors";
+  const API_BASE = "https://api.vister.in/api/vendors";
 
   const handleLogin = async () => {
     if (!email || !password) {
