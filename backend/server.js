@@ -36,26 +36,18 @@ app.use('/api/leads', leadRoutes);
 app.get('/', (req, res) => {
     res.send('<h1 style="text-align:center; color:blue; font-family:sans-serif; margin-top:50px;">🚀 Vyapaar Seva Live API is Running!</h1>');
 });
-
-// --- 5. DATABASE CONNECTION (FIXED) ---
-// अब यह सीधे .env फाइल से लिंक उठाएगा
-const MONGO_URI = process.env.MONGO_URI;
-
-if (!MONGO_URI) {
-    console.error("❌ Error: MONGO_URI is not defined in .env file");
-    process.exit(1);
-}
+    // --- 5. DATABASE CONNECTION (FIXED) ---
+// मंतु भाई, यहाँ लिंक डायरेक्ट डाल दें ताकि सर्वर क्रैश न हो
+const MONGO_URI = "mongodb+srv://vister:-vister12345@cluster0.pusq8bm.mongodb.net/VyapaarSeva?retryWrites=true&w=majority&appName=Cluster0";
 
 mongoose.connect(MONGO_URI)
     .then(() => {
         console.log("------------------------------------------");
         console.log("✅ MongoDB Connected Successfully!");
-        console.log("📁 Database: VyapaarSeva");
         console.log("------------------------------------------");
     })
     .catch(err => {
         console.error("❌ MongoDB Connection Error: ", err.message);
-        console.log("\n💡 टिप: अगर अब भी ECONNREFUSED आए, तो अपने .env में लिंक चेक करें या मोबाइल हॉटस्पॉट बदलें।");
     });
 
 // --- 6. SERVER START ---
