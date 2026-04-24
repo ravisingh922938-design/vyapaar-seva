@@ -29,7 +29,7 @@ export default function FreeListingPage() {
 
     // ✅ LOCAL TESTING KE LIYE LOCALHOST USE KAREIN
     // Jab live karna ho tab "https://api.vister.in/api" kar dena
-    const API_BASE = "http://localhost:5000/api";
+    const API_BASE = "https://api.vister.in/api";
 
     // 1. Categories load karna
     useEffect(() => {

@@ -13,7 +13,6 @@ const leadRoutes = require('./routes/leadRoutes');
 const app = express();
 
 // --- 2. MIDDLEWARES & CORS ---
-// origin: "*" taaki aapka localhost aur live domain dono se data aaye
 app.use(cors({
     origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -22,7 +21,6 @@ app.use(cors({
 app.use(express.json());
 
 // --- 3. UPLOADS FOLDER SETUP ---
-// Agar uploads folder nahi hai toh ye code khud bana dega
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir);
@@ -30,27 +28,39 @@ if (!fs.existsSync(uploadDir)) {
 app.use('/uploads', express.static(uploadDir));
 
 // --- 4. API ROUTES MAPPING ---
-// Mantu bhai, ye raaste ekdum dhyan se dekhiye:
-app.use('/api/categories', categoryRoutes); // Raasta: /api/categories
-app.use('/api/vendors', vendorRoutes);       // Raasta: /api/vendors (Register/Login isi me hain)
-app.use('/api/leads', leadRoutes);           // Raasta: /api/leads (Enquiry isi me hai)
+app.use('/api/categories', categoryRoutes); 
+app.use('/api/vendors', vendorRoutes);       
+app.use('/api/leads', leadRoutes);           
 
-// Welcome Route (Check karne ke liye ki server chalu hai)
+// Welcome Route
 app.get('/', (req, res) => {
     res.send('<h1 style="text-align:center; color:blue; font-family:sans-serif; margin-top:50px;">🚀 Vyapaar Seva Live API is Running!</h1>');
 });
 
-// --- 5. DATABASE CONNECTION ---
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log("✅ MongoDB Connected Successfully!"))
+// --- 5. DATABASE CONNECTION (FIXED) ---
+// अब यह सीधे .env फाइल से लिंक उठाएगा
+const MONGO_URI = process.env.MONGO_URI;
+
+if (!MONGO_URI) {
+    console.error("❌ Error: MONGO_URI is not defined in .env file");
+    process.exit(1);
+}
+
+mongoose.connect(MONGO_URI)
+    .then(() => {
+        console.log("------------------------------------------");
+        console.log("✅ MongoDB Connected Successfully!");
+        console.log("📁 Database: VyapaarSeva");
+        console.log("------------------------------------------");
+    })
     .catch(err => {
         console.error("❌ MongoDB Connection Error: ", err.message);
+        console.log("\n💡 टिप: अगर अब भी ECONNREFUSED आए, तो अपने .env में लिंक चेक करें या मोबाइल हॉटस्पॉट बदलें।");
     });
 
 // --- 6. SERVER START ---
 const PORT = process.env.PORT || 5000;
 
-// '0.0.0.0' Render.com ke liye zaroori hai
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n------------------------------------------`);
     console.log(`🚀 VYAPAAR SEVA SERVER IS LIVE!`);
