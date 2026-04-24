@@ -36,20 +36,23 @@ app.use('/api/leads', leadRoutes);
 app.get('/', (req, res) => {
     res.send('<h1 style="text-align:center; color:blue; font-family:sans-serif; margin-top:50px;">🚀 Vyapaar Seva Live API is Running!</h1>');
 });
-    // --- 5. DATABASE CONNECTION (FIXED) ---
-// मंतु भाई, यहाँ लिंक डायरेक्ट डाल दें ताकि सर्वर क्रैश न हो
-const MONGO_URI = "mongodb+srv://vister:-vister12345@cluster0.pusq8bm.mongodb.net/VyapaarSeva?retryWrites=true&w=majority&appName=Cluster0";
+// --- 5. DATABASE CONNECTION (ULTIMATE FIX) ---
+// मंतु भाई, यह 'Standard Link' है, इसमें SRV की समस्या नहीं आती।
+const MONGO_URI = "mongodb://vister:-vister12345@cluster0-shard-00-00.pusq8bm.mongodb.net:27017,cluster0-shard-00-01.pusq8bm.mongodb.net:27017,cluster0-shard-00-02.pusq8bm.mongodb.net:27017/VyapaarSeva?ssl=true&replicaSet=atlas-pusq8bm-shard-0&authSource=admin&retryWrites=true&w=majority";
 
-mongoose.connect(MONGO_URI)
-    .then(() => {
-        console.log("------------------------------------------");
-        console.log("✅ MongoDB Connected Successfully!");
-        console.log("------------------------------------------");
-    })
-    .catch(err => {
-        console.error("❌ MongoDB Connection Error: ", err.message);
-    });
-
+mongoose.connect(MONGO_URI, {
+    connectTimeoutMS: 20000, // 20 सेकंड तक कोशिश करे
+    socketTimeoutMS: 45000,
+})
+.then(() => {
+    console.log("------------------------------------------");
+    console.log("✅ MongoDB Connected Successfully (Standard Link)!");
+    console.log("------------------------------------------");
+})
+.catch(err => {
+    console.error("❌ अभी भी एरर है: ", err.message);
+});
+  
 // --- 6. SERVER START ---
 const PORT = process.env.PORT || 5000;
 
