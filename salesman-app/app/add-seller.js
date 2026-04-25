@@ -4,10 +4,23 @@ import { useRouter } from 'expo-router';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
-import { Store, User, Smartphone, Mail, Lock, ArrowLeft } from 'lucide-react-native';
+import { Store, User, Smartphone, Mail, Lock, ArrowLeft, MapPin, Hash, Tag, Globe } from 'lucide-react-native';
 
 export default function AddSellerScreen() {
-    const [formData, setFormData] = useState({ name: '', shopName: '', phone: '', email: '', password: '', category: '', area: 'Patna' });
+    const [formData, setFormData] = useState({ 
+        name: '', 
+        shopName: '', 
+        phone: '', 
+        email: '', 
+        password: '', 
+        category: '', 
+        area: '', 
+        city: '', 
+        state: 'Bihar', 
+        pincode: '',
+        tags: '' // सेल्समैन यहाँ कोमा लगाकर कीवर्ड्स लिखेगा
+    });
+    
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
@@ -15,70 +28,111 @@ export default function AddSellerScreen() {
     const API_BASE = "https://api.vister.in/api";
 
     useEffect(() => {
-        // Categories load karein dropdown ke liye
-        axios.get(`${API_BASE}/categories`).then(res => setCategories(res.data));
+        axios.get(`${API_BASE}/categories`)
+            .then(res => setCategories(res.data))
+            .catch(err => console.log("Cat Error"));
     }, []);
 
     const handleAddSeller = async () => {
-        if (!formData.email || !formData.password || !formData.phone) {
-            return Alert.alert("Rukiye!", "Email, Password aur Phone bharna zaroori hai.");
+        // ✅ वैलिडेशन
+        if (!formData.email || !formData.phone || !formData.pincode || !formData.category) {
+            return Alert.alert("रुको!", "ईमेल, फोन, पिनकोड और कैटेगरी भरना ज़रूरी है।");
         }
 
         setLoading(true);
         try {
             const salesmanId = await AsyncStorage.getItem('salesmanId');
+            
+            // ✅ कीवर्ड्स को एरे (Array) में बदलना
+            const keywordArray = formData.tags.split(',').map(k => k.trim()).filter(k => k !== "");
 
-            // Backend ko salesmanId ke saath data bhej rahe hain
-            const res = await axios.post(`${API_BASE}/vendors/register`, {
+            const finalData = {
                 ...formData,
-                salesmanId: salesmanId // 🔥 Isse lead auto-lock ho jayegi
-            });
+                keywords: keywordArray, // बैकएंड में 'keywords' नाम से जाएगा
+                salesmanId: salesmanId
+            };
+
+            const res = await axios.post(`${API_BASE}/vendors/register`, finalData);
 
             if (res.data.status === "success") {
-                Alert.alert("Mubarak Ho!", "Nayi dukan add ho gayi aur aapki list me jodh di gayi hai.");
-                router.back(); // Dashboard par wapas jayein
+                Alert.alert("बधाई हो!", "दुकान रजिस्टर हो गई और कीवर्ड्स भी जुड़ गए हैं।");
+                router.back();
             }
         } catch (err) {
-            Alert.alert("Galti!", err.response?.data?.message || "Registration fail!");
+            console.log(err.response?.data);
+            Alert.alert("गलती!", err.response?.data?.message || "Registration fail!");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <ScrollView style={styles.container}>
+        <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 50}}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
                 <ArrowLeft size={20} color="#1e293b" />
                 <Text style={styles.backText}>WAPAS</Text>
             </TouchableOpacity>
 
             <Text style={styles.title}>Add New Seller</Text>
-            <Text style={styles.subTitle}>Dukan ki jankari bhariye</Text>
+            <Text style={styles.subTitle}>दुकान की पूरी जानकारी भरें</Text>
 
             <View style={styles.form}>
+                {/* १. दुकान का नाम */}
                 <View style={styles.inputBox}>
                     <Store size={18} color="#94a3b8" style={styles.icon} />
                     <TextInput placeholder="Shop Name" style={styles.input} onChangeText={(v) => setFormData({ ...formData, shopName: v })} />
                 </View>
 
+                {/* २. मालिक का नाम */}
                 <View style={styles.inputBox}>
                     <User size={18} color="#94a3b8" style={styles.icon} />
                     <TextInput placeholder="Owner Name" style={styles.input} onChangeText={(v) => setFormData({ ...formData, name: v })} />
                 </View>
 
+                {/* ३. फोन और ईमेल */}
                 <View style={styles.inputBox}>
                     <Smartphone size={18} color="#94a3b8" style={styles.icon} />
-                    <TextInput placeholder="Phone Number" keyboardType="phone-pad" maxLength={10} style={styles.input} onChangeText={(v) => setFormData({ ...formData, phone: v })} />
+                    <TextInput placeholder="Phone" keyboardType="phone-pad" maxLength={10} style={styles.input} onChangeText={(v) => setFormData({ ...formData, phone: v })} />
                 </View>
-
                 <View style={styles.inputBox}>
                     <Mail size={18} color="#94a3b8" style={styles.icon} />
                     <TextInput placeholder="Email Address" style={styles.input} onChangeText={(v) => setFormData({ ...formData, email: v })} />
                 </View>
 
+                {/* ४. पासवर्ड */}
                 <View style={styles.inputBox}>
                     <Lock size={18} color="#94a3b8" style={styles.icon} />
-                    <TextInput placeholder="Set Password" secureTextEntry style={styles.input} onChangeText={(v) => setFormData({ ...formData, password: v })} />
+                    <TextInput placeholder="Set Login Password" secureTextEntry style={styles.input} onChangeText={(v) => setFormData({ ...formData, password: v })} />
+                </View>
+
+                {/* ५. एरिया और पिनकोड */}
+                <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+                    <View style={[styles.inputBox, {width: '48%'}]}>
+                        <MapPin size={18} color="#94a3b8" style={styles.icon} />
+                        <TextInput placeholder="Area" style={styles.input} onChangeText={(v) => setFormData({ ...formData, area: v })} />
+                    </View>
+                    <View style={[styles.inputBox, {width: '48%'}]}>
+                        <Hash size={18} color="#94a3b8" style={styles.icon} />
+                        <TextInput placeholder="Pincode" keyboardType="number-pad" maxLength={6} style={styles.input} onChangeText={(v) => setFormData({ ...formData, pincode: v })} />
+                    </View>
+                </View>
+
+                {/* ६. सिटी */}
+                <View style={styles.inputBox}>
+                    <Globe size={18} color="#94a3b8" style={styles.icon} />
+                    <TextInput placeholder="City (e.g. Patna, Delhi)" style={styles.input} onChangeText={(v) => setFormData({ ...formData, city: v })} />
+                </View>
+
+                {/* ७. कीवर्ड्स (जुगाड़) */}
+                <Text style={styles.label}>Keywords (comma लगा कर लिखें):</Text>
+                <View style={[styles.inputBox, {height: 80}]}>
+                    <Tag size={18} color="#2563eb" style={styles.icon} />
+                    <TextInput 
+                        placeholder="AC, Repair, Service, Installation..." 
+                        multiline 
+                        style={styles.input} 
+                        onChangeText={(v) => setFormData({ ...formData, tags: v })} 
+                    />
                 </View>
 
                 <Text style={styles.label}>Category:</Text>
@@ -93,7 +147,7 @@ export default function AddSellerScreen() {
                 </View>
 
                 <TouchableOpacity style={styles.submitBtn} onPress={handleAddSeller} disabled={loading}>
-                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>REGISTER SELLER</Text>}
+                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>SAVE & LIST BUSINESS</Text>}
                 </TouchableOpacity>
             </View>
         </ScrollView>
@@ -104,13 +158,14 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#f8fafc', padding: 20 },
     backBtn: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, marginTop: 40 },
     backText: { marginLeft: 10, fontWeight: 'bold', fontSize: 12 },
-    title: { fontSize: 28, fontWeight: '900', color: '#1e293b' },
-    subTitle: { fontSize: 14, color: '#64748b', marginBottom: 30 },
-    inputBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 15, paddingHorizontal: 15, marginBottom: 15, height: 60, elevation: 2 },
+    title: { fontSize: 26, fontWeight: '900', color: '#1e293b' },
+    subTitle: { fontSize: 13, color: '#64748b', marginBottom: 25 },
+    form: { marginBottom: 20 },
+    inputBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 15, paddingHorizontal: 15, marginBottom: 15, height: 60, elevation: 3, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5 },
     icon: { marginRight: 10 },
-    input: { flex: 1, fontWeight: 'bold' },
-    label: { fontSize: 12, fontWeight: 'bold', marginBottom: 5, color: '#64748b' },
-    pickerBox: { backgroundColor: '#fff', borderRadius: 15, marginBottom: 30, elevation: 2 },
-    submitBtn: { backgroundColor: '#2563eb', height: 65, borderRadius: 20, justifyContent: 'center', alignItems: 'center', shadowColor: '#2563eb', shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
-    btnText: { color: '#fff', fontWeight: '900', letterSpacing: 1 }
+    input: { flex: 1, fontWeight: '600', color: '#334155' },
+    label: { fontSize: 11, fontWeight: '900', marginBottom: 8, color: '#475569', textTransform: 'uppercase' },
+    pickerBox: { backgroundColor: '#fff', borderRadius: 15, marginBottom: 30, elevation: 3 },
+    submitBtn: { backgroundColor: '#2563eb', height: 65, borderRadius: 20, justifyContent: 'center', alignItems: 'center', elevation: 5 },
+    btnText: { color: '#fff', fontWeight: '900', letterSpacing: 1, fontSize: 16 }
 });

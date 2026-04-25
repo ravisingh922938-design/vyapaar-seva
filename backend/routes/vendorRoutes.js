@@ -23,6 +23,7 @@ router.post('/login', vendorController.loginVendor);
 
 router.put('/update-profile/:id', vendorController.updateProfile);
 router.post('/submit-kyc', vendorController.submitKYC);
+router.put('/update-keywords/:id', vendorController.updateKeywords);
 
 // ============================================================
 // 2. WALLET & FINANCE

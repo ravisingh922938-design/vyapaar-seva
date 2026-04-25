@@ -5,26 +5,21 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 // ============================================================
-// 1. SELLER REGISTRATION (Email, Password, Photo & Location)
+// 1. VENDOR REGISTRATION (With Keywords & Location)
 // ============================================================
 exports.registerVendor = async (req, res) => {
     try {
-        // 🔥 DEBUG LOG: Ye terminal me dikhayega ki Frontend ne kya-kya bheja
         console.log("--- Naya Registration Request ---");
-        console.log("Data Received:", req.body);
-
-        // ✅ मंतु भाई, यहाँ हमने pincode, city, state और fullAddress को जोड़ दिया है
+        
         const { 
             name, shopName, phone, email, password, 
-            category, area, description, pincode, city, state, fullAddress 
+            category, area, pincode, city, state, 
+            fullAddress, description, keywords 
         } = req.body;
 
-        // 🛑 BASIC VALIDATION
-        if (!email || !password || !phone) {
-            return res.status(400).json({
-                status: "error",
-                message: "Email, Password aur Phone zaroori hain!"
-            });
+        // 🛑 Basic Validation
+        if (!email || !password || !phone || !shopName) {
+            return res.status(400).json({ status: "error", message: "Zaroori details missing hain!" });
         }
 
         // Check if seller already exists
@@ -32,17 +27,19 @@ exports.registerVendor = async (req, res) => {
         const existing = await Vendor.findOne({ $or: [{ phone: cleanPhone }, { email: email.toLowerCase() }] });
 
         if (existing) {
-            return res.status(400).json({
-                status: "error",
-                message: "Ye Email ya Phone pehle se register hai!"
-            });
+            return res.status(400).json({ status: "error", message: "Email ya Phone pehle se register hai!" });
         }
 
         // 🔐 Password Hashing
         const hashedPassword = await bcrypt.hash(password, 10);
         const myReferralCode = "VISTER" + Math.floor(1000 + Math.random() * 9000);
 
-        // ✅ डेटाबेस में नए फील्ड्स को मैप करना
+        // ✅ Keywords Handle करना (अगर String में आए तो Array बनाना)
+        let keywordArray = [];
+        if (keywords) {
+            keywordArray = Array.isArray(keywords) ? keywords : keywords.split(',').map(k => k.trim());
+        }
+
         const newVendor = new Vendor({
             name,
             shopName,
@@ -51,12 +48,13 @@ exports.registerVendor = async (req, res) => {
             password: hashedPassword,
             category,
             area,
-            pincode,      // 👈 नया
-            city,         // 👈 नया
-            state,        // 👈 नया
-            fullAddress,  // 👈 नया
-            description: description || "Business expert.",
-            image: req.file ? req.file.filename : "", // Schema के हिसाब से 'image' रखा है
+            pincode,
+            city,
+            state,
+            fullAddress,
+            description: description || "Quality service provider.",
+            keywords: keywordArray,
+            image: req.file ? req.file.filename : "", // Schema के हिसाब से
             walletBalance: 0,
             referralCode: myReferralCode
         });
@@ -66,7 +64,7 @@ exports.registerVendor = async (req, res) => {
 
         res.status(201).json({
             status: "success",
-            message: "Registration Successful! Ab login karke dashboard dekhein."
+            message: "Registration Successful! Ab login karein."
         });
 
     } catch (err) {
@@ -76,14 +74,13 @@ exports.registerVendor = async (req, res) => {
 };
 
 // ============================================================
-// 2. SELLER LOGIN (JWT Based)
+// 2. VENDOR LOGIN (JWT Based)
 // ============================================================
 exports.loginVendor = async (req, res) => {
     try {
         const { email, password } = req.body;
-        console.log("Login Attempt:", email);
-
         const seller = await Vendor.findOne({ email: email.toLowerCase() });
+        
         if (!seller) {
             return res.status(404).json({ status: "error", message: "Email registered nahi hai!" });
         }
@@ -106,17 +103,62 @@ exports.loginVendor = async (req, res) => {
                 id: seller._id,
                 shopName: seller.shopName,
                 email: seller.email,
+                category: seller.category,
                 isVerified: seller.isVerified
             }
         });
-
     } catch (err) {
         res.status(500).json({ status: "error", message: "Login Fail" });
     }
 };
 
 // ============================================================
-// 3. SEARCH & PROFILE
+// 3. SEARCH & KEYWORDS
+// ============================================================
+
+// ✅ कीवर्ड्स अपडेट करने के लिए
+exports.updateKeywords = async (req, res) => {
+    try {
+        const { keywords } = req.body;
+        const keywordArray = Array.isArray(keywords) ? keywords : keywords.split(',').map(k => k.trim());
+        
+        const vendor = await Vendor.findByIdAndUpdate(
+            req.params.id, 
+            { keywords: keywordArray }, 
+            { new: true }
+        );
+        res.json({ status: "success", vendor });
+    } catch (err) {
+        res.status(500).send(err);
+    }
+};
+
+// ✅ एडवांस्ड सर्च (Shop Name + Keywords)
+exports.searchVendors = async (req, res) => {
+    try {
+        const { query, categoryId, city, area } = req.query;
+        let filter = {};
+
+        if (categoryId) filter.category = categoryId;
+        if (city) filter.city = city;
+        if (area) filter.area = area;
+
+        if (query) {
+            filter.$or = [
+                { shopName: { $regex: query, $options: 'i' } },
+                { keywords: { $in: [new RegExp(query, 'i')] } }
+            ];
+        }
+
+        const vendors = await Vendor.find(filter).sort({ isVerified: -1 });
+        res.json(vendors);
+    } catch (err) {
+        res.status(500).json({ message: "Search Error: " + err.message });
+    }
+};
+
+// ============================================================
+// 4. PROFILE & DETAILS
 // ============================================================
 exports.getVendorDetails = async (req, res) => {
     try {
@@ -128,25 +170,11 @@ exports.getVendorDetails = async (req, res) => {
     } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
-exports.searchVendors = async (req, res) => {
-    try {
-        const { query, categoryId, area, city } = req.query;
-        let filter = {};
-        if (categoryId) filter.category = categoryId;
-        if (area) filter.area = area;
-        if (city) filter.city = city; // ✅ सिटी सर्च भी चालू
-        if (query) filter.shopName = { $regex: query, $options: 'i' };
-
-        const vendors = await Vendor.find(filter).sort({ isVerified: -1 });
-        res.json(vendors);
-    } catch (err) { res.status(500).json({ message: err.message }); }
-};
-
 // ============================================================
-// 4. DUMMY FUNCTIONS (Taki Routes na tutein)
+// 5. HELPER & DUMMY FUNCTIONS (Super Tools)
 // ============================================================
 exports.updateProfile = async (req, res) => { try { const v = await Vendor.findByIdAndUpdate(req.params.id, req.body, { new: true }); res.json(v); } catch (e) { res.status(500).send(e) } };
-exports.getWalletBalance = async (req, res) => { try { const v = await Vendor.findById(req.params.id); res.json({ balance: v.walletBalance }); } catch (e) { res.status(500).send(e) } };
+exports.getWalletBalance = async (req, res) => { try { const v = await Vendor.findById(req.params.id); res.json({ balance: v.walletBalance || 0 }); } catch (e) { res.status(500).send(e) } };
 exports.getAllVendors = async (req, res) => { try { const v = await Vendor.find().select('-password'); res.json(v); } catch (e) { res.status(500).send(e) } };
 exports.addMoney = async (req, res) => { res.json({ ok: true }); };
 exports.getTransactions = async (req, res) => { res.json([]); };
@@ -156,30 +184,26 @@ exports.getBusinessStats = async (req, res) => { res.json({ views: 0 }); };
 exports.getVendorReviews = async (req, res) => { res.json([]); };
 exports.addReview = async (req, res) => { res.json({ ok: true }); };
 exports.createOffer = async (req, res) => { res.json({ ok: true }); };
-exports.getVendorOffers = async (req, res) => { res.json([]); };
 exports.createInvoice = async (req, res) => { res.json({ ok: true }); };
 exports.getInvoices = async (req, res) => { res.json([]); };
 exports.addExpense = async (req, res) => { res.json({ ok: true }); };
 exports.getProfitLoss = async (req, res) => { res.json({ ok: true }); };
 exports.applyForLoan = async (req, res) => { res.json({ ok: true }); };
-exports.applyForTaxService = async (req, res) => { res.json({ ok: true }); };
 exports.addStaff = async (req, res) => { res.json({ ok: true }); };
 exports.getStaffList = async (req, res) => { res.json([]); };
 exports.createBooking = async (req, res) => { res.json({ ok: true }); };
 exports.getMyBookings = async (req, res) => { res.json([]); };
 exports.issueWarranty = async (req, res) => { res.json({ ok: true }); };
 exports.createSupportTicket = async (req, res) => { res.json({ ok: true }); };
-exports.requestUpgrade = async (req, res) => { res.json({ ok: true }); };
-exports.getMarketingAudience = async (req, res) => { res.json([]); };
-exports.sendLoginOTP = async (req, res) => { res.json({ ok: true }); };
-exports.verifyLogin = async (req, res) => { res.json({ ok: true }); };
 exports.updateLeadStatus = async (req, res) => { res.json({ ok: true }); };
 exports.sendQuote = async (req, res) => { res.json({ ok: true }); };
+exports.initiateRecharge = async (req, res) => { res.json({ ok: true }); };
+exports.verifyAndAddMoney = async (req, res) => { res.json({ ok: true }); };
+exports.getMarketingAudience = async (req, res) => { res.json([]); };
+
 exports.getTrackedLeads = async (req, res) => {
     try {
         const leads = await LeadTracker.find({ vendorId: req.params.vendorId }).populate('leadId');
         res.json(leads);
     } catch (e) { res.status(500).send(e); }
 };
-exports.initiateRecharge = async (req, res) => { res.json({ ok: true }); };
-exports.verifyAndAddMoney = async (req, res) => { res.json({ ok: true }); };
