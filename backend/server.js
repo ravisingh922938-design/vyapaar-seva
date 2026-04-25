@@ -14,7 +14,7 @@ const app = express();
 
 // --- 2. MIDDLEWARES & CORS ---
 app.use(cors({
-    origin: "*",
+    origin: "*", 
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
@@ -36,21 +36,23 @@ app.use('/api/leads', leadRoutes);
 app.get('/', (req, res) => {
     res.send('<h1 style="text-align:center; color:blue; font-family:sans-serif; margin-top:50px;">🚀 Vyapaar Seva Live API is Running!</h1>');
 });
-// --- 5. DATABASE CONNECTION (ULTIMATE FIX) ---
-// मंतु भाई, यह 'Standard Link' है, इसमें SRV की समस्या नहीं आती।
-const MONGO_URI = "mongodb://vister:-vister12345@cluster0-shard-00-00.pusq8bm.mongodb.net:27017,cluster0-shard-00-01.pusq8bm.mongodb.net:27017,cluster0-shard-00-02.pusq8bm.mongodb.net:27017/VyapaarSeva?ssl=true&replicaSet=atlas-pusq8bm-shard-0&authSource=admin&retryWrites=true&w=majority";
+
+// --- 5. DATABASE CONNECTION (ULTIMATE FIXED) ---
+// मंतु भाई, लिंक को हमेशा " " के अंदर रखना चाहिए। यहाँ मैंने सही कर दिया है।
+const MONGO_URI = "mongodb://vister:mantu12345@ac-3tg1ay7-shard-00-00.pusq8bm.mongodb.net:27017,ac-3tg1ay7-shard-00-01.pusq8bm.mongodb.net:27017,ac-3tg1ay7-shard-00-02.pusq8bm.mongodb.net:27017/vyapaarseva?ssl=true&replicaSet=atlas-m4pv0c-shard-0&authSource=admin&appName=Cluster0";
 
 mongoose.connect(MONGO_URI, {
-    connectTimeoutMS: 20000, // 20 सेकंड तक कोशिश करे
+    connectTimeoutMS: 30000, // 30 सेकंड का समय
     socketTimeoutMS: 45000,
 })
 .then(() => {
     console.log("------------------------------------------");
-    console.log("✅ MongoDB Connected Successfully (Standard Link)!");
+    console.log("✅ MongoDB Connected Successfully!");
     console.log("------------------------------------------");
 })
 .catch(err => {
     console.error("❌ अभी भी एरर है: ", err.message);
+    console.log("\n💡 मंतु भाई: अगर अभी भी 'Whitelist' एरर आए, तो मोंगोडीबी एटलस में 0.0.0.0/0 को फिर से डिलीट करके ऐड करें।");
 });
   
 // --- 6. SERVER START ---
