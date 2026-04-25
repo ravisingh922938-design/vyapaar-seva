@@ -9,8 +9,7 @@ export default function RechargeWallet() {
     const [loading, setLoading] = useState(false);
     const [isScriptLoaded, setIsScriptLoaded] = useState(false); // New State
     const router = useRouter();
-
-    const API_BASE = "http://10.44.111.238:5000/api";
+    const API_BASE = "https://api.vister.in/api";
 
     // --- 🔥 STEP 1: SCRIPT LOADING KO PAKKA KARNA ---
     useEffect(() => {
