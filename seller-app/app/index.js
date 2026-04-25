@@ -6,45 +6,47 @@ import {
 import { useRouter } from 'expo-router';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Mail, Lock, LogIn, Briefcase } from 'lucide-react-native';
+import { Mail, Lock, LogIn, Store } from 'lucide-react-native'; // Briefcase की जगह Store लगाया है
 
-export default function LoginScreen() {
+export default function SellerLoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // ✅ SALESMAN LOGIN PATH (Live URL)
-  const API_BASE = "https://api.vister.in/api/vendors/salesman";
+  // ✅ SELLER LOGIN PATH (अब यह सीधा वेंडर लॉगिन पर जाएगा)
+  const API_BASE = "https://api.vister.in/api/vendors";
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Rukiye!", "Email aur Password bharna zaroori hai.");
+      Alert.alert("रुको!", "ईमेल और पासवर्ड भरना ज़रूरी है।");
       return;
     }
 
     setLoading(true);
     try {
-      // ✅ Email ko lowerCase me convert kiya taaki typo na ho
       const cleanEmail = email.toLowerCase().trim();
 
-      const res = await axios.post(`${API_BASE}/login`, { email: cleanEmail, password });
+      // 🔥 सुधार: अब ये /login पर जाएगा, /salesman/login पर नहीं
+      const res = await axios.post(`${API_BASE}/login`, { 
+        email: cleanEmail, 
+        password 
+      });
 
       if (res.data.status === "success") {
-        // Salesman ki ID aur Token dono save karein
-        await AsyncStorage.setItem('salesmanId', res.data.salesman.id);
-        await AsyncStorage.setItem('salesmanName', res.data.salesman.name);
-        await AsyncStorage.setItem('salesmanToken', res.data.token);
+        // ✅ वेंडर का डेटा और टोकन सेव करें
+        await AsyncStorage.setItem('sellerToken', res.data.token);
+        await AsyncStorage.setItem('sellerData', JSON.stringify(res.data.seller));
 
-        Alert.alert("Welcome!", `Hello ${res.data.salesman.name}`);
+        Alert.alert("सफल!", `स्वागत है ${res.data.seller.shopName}`);
 
-        // Seedha Dashboard par bhej do
+        // डैशबोर्ड पर भेजें
         router.replace('/dashboard');
       }
     } catch (err) {
       console.log("Login fail:", err.response?.data || err.message);
-      const msg = err.response?.data?.message || "Login fail! Email ya Password galat hai.";
-      Alert.alert("Galti!", msg);
+      const msg = err.response?.data?.message || "लॉगिन फेल! कृपया ईमेल और पासवर्ड चेक करें।";
+      Alert.alert("गड़बड़!", msg);
     } finally {
       setLoading(false);
     }
@@ -54,13 +56,13 @@ export default function LoginScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
 
-        {/* SALESMAN LOGO */}
+        {/* SELLER LOGO SECTION */}
         <View style={styles.headerArea}>
           <View style={styles.logoIcon}>
-            <Briefcase size={40} color="#fff" />
+            <Store size={40} color="#fff" />
           </View>
           <Text style={styles.title}>VYAPAAR SEVA</Text>
-          <Text style={styles.subtitle}>Sales Executive Login</Text>
+          <Text style={styles.subtitle}>Seller Admin Login</Text>
         </View>
 
         <View style={styles.card}>
@@ -68,7 +70,7 @@ export default function LoginScreen() {
             <Mail size={20} color="#94a3b8" style={styles.icon} />
             <TextInput
               style={styles.input}
-              placeholder="Official Email"
+              placeholder="Seller Email Address"
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
@@ -93,13 +95,13 @@ export default function LoginScreen() {
             ) : (
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <LogIn size={20} color="#fff" style={{ marginRight: 10 }} />
-                <Text style={styles.btnText}>ENTER CRM DASHBOARD</Text>
+                <Text style={styles.btnText}>ENTER SELLER DASHBOARD</Text>
               </View>
             )}
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.footerText}>Authorized Vyapaar Seva Personnel Only</Text>
+        <Text style={styles.footerText}>Authorized Seller Personnel Only</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );

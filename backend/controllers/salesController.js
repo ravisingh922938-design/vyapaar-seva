@@ -2,14 +2,15 @@ const Vendor = require('../models/Vendor');
 const Salesman = require('../models/Salesman');
 const Transaction = require('../models/Transaction');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken'); // ✅ मंतु भाई, ये लाइन ज़रूरी है टोकन बनाने के लिए
 
 // ============================================================
-// 1. SALESMAN JOINING (Hiring Section) - Snippet 8 se liya
+// 1. SALESMAN JOINING (Registration)
 // ============================================================
 exports.registerSalesman = async (req, res) => {
     try {
         const { name, phone, email, password, area } = req.body;
-        const existing = await Salesman.findOne({ $or: [{ email }, { phone }] });
+        const existing = await Salesman.findOne({ $or: [{ email: email.toLowerCase() }, { phone }] });
         if (existing) return res.status(400).json({ message: "Aap pehle se registered hain!" });
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -17,7 +18,7 @@ exports.registerSalesman = async (req, res) => {
         const referralCode = "REF-" + Math.random().toString(36).substring(2, 7).toUpperCase();
 
         const newSalesman = new Salesman({
-            name, phone, email, area,
+            name, phone, email: email.toLowerCase(), area,
             password: hashedPassword,
             empId: empId,
             referralCode: referralCode,
@@ -30,7 +31,51 @@ exports.registerSalesman = async (req, res) => {
 };
 
 // ============================================================
-// 2. LEAD POOL (IndiaMart Style) - Snippet 3 se liya
+// ✅ 2. SALESMAN LOGIN (पूरी तरह सही और नया कोड)
+// ============================================================
+exports.loginSalesman = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        console.log("Salesman Login Attempt:", email);
+
+        // १. ईमेल से सेल्समैन को ढूँढना
+        const salesman = await Salesman.findOne({ email: email.toLowerCase() });
+        if (!salesman) {
+            return res.status(404).json({ status: "error", message: "Aap registered nahi hain!" });
+        }
+
+        // २. पासवर्ड चेक करना
+        const isMatch = await bcrypt.compare(password, salesman.password);
+        if (!isMatch) {
+            return res.status(400).json({ status: "error", message: "Password galat hai!" });
+        }
+
+        // ३. चाबी (Token) बनाना - ७ दिन के लिए
+        const token = jwt.sign(
+            { id: salesman._id, role: 'salesman' },
+            process.env.JWT_SECRET || 'vister_tech_2026_key',
+            { expiresIn: '7d' }
+        );
+
+        res.status(200).json({
+            status: "success",
+            token,
+            user: {
+                id: salesman._id,
+                name: salesman.name,
+                email: salesman.email,
+                empId: salesman.empId
+            }
+        });
+
+    } catch (err) {
+        console.error("Login Error:", err.message);
+        res.status(500).json({ status: "error", message: "Login Fail: Server Error" });
+    }
+};
+
+// ============================================================
+// 3. LEAD POOL (IndiaMart Style)
 // ============================================================
 exports.getAvailablePool = async (req, res) => {
     try {
@@ -58,13 +103,13 @@ exports.claimLead = async (req, res) => {
 };
 
 // ============================================================
-// 3. RELEASE LEAD SYSTEM - Snippet 4 se liya
+// 4. RELEASE LEAD SYSTEM
 // ============================================================
 exports.releaseLead = async (req, res) => {
     try {
         const { vendorId, salesmanId } = req.body;
         const vendor = await Vendor.findById(vendorId);
-        if (vendor.assignedSalesman.toString() !== salesmanId) {
+        if (!vendor.assignedSalesman || vendor.assignedSalesman.toString() !== salesmanId) {
             return res.status(403).json({ message: "Aap nahi hata sakte!" });
         }
         vendor.assignedSalesman = null;
@@ -75,7 +120,7 @@ exports.releaseLead = async (req, res) => {
 };
 
 // ============================================================
-// 4. WORKLIST & NOTEPAD - Snippet 3 aur 5 se liya
+// 5. WORKLIST & NOTEPAD
 // ============================================================
 exports.getMyTargets = async (req, res) => {
     try {
@@ -99,7 +144,7 @@ exports.addSalesNote = async (req, res) => {
 };
 
 // ============================================================
-// 5. KYC & FINANCE - Snippet 6 aur 7 se liya
+// 6. KYC & FINANCE
 // ============================================================
 exports.submitSalesmanKYC = async (req, res) => {
     try {
@@ -132,11 +177,11 @@ exports.resetSalesmanWallet = async (req, res) => {
 };
 
 // ============================================================
-// 6. SALESMAN OVERVIEW (Status Logic) - Snippet 1 aur 2 se liya
+// 7. SALESMAN OVERVIEW (Status Logic)
 // ============================================================
 exports.getSalesLeads = async (req, res) => {
     try {
-        const { salesmanId } = req.query; // Filter logic from snippet 2
+        const { salesmanId } = req.query; 
         let filter = {};
         if (salesmanId) filter.assignedSalesman = salesmanId;
 

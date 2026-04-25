@@ -11,13 +11,16 @@ const salesCtrl = require('../controllers/salesController');
 const upload = multer({ dest: 'uploads/' });
 
 // ============================================================
-// 1. VENDOR AUTH & PROFILE (Sellers)
+// 1. VENDOR AUTH & PROFILE (Sellers / Dukandar)
 // ============================================================
 router.get('/', vendorController.getAllVendors);
 router.get('/search', vendorController.searchVendors);
 router.get('/:id', vendorController.getVendorDetails);
 router.post('/register', upload.single('image'), vendorController.registerVendor);
-router.post('/login', vendorController.loginVendor);
+
+// 🔑 SELLER LOGIN (For Dukandar)
+router.post('/login', vendorController.loginVendor); 
+
 router.put('/update-profile/:id', vendorController.updateProfile);
 router.post('/submit-kyc', vendorController.submitKYC);
 
@@ -34,11 +37,16 @@ router.get('/pl-summary/:vendorId', vendorController.getProfitLoss);
 // ============================================================
 // 3. SALESMAN CRM TOOLS (Digital Diary, Payouts & Pool)
 // ============================================================
-router.post('/salesman/join', salesCtrl.registerSalesman); // ✅ Registration Route
+// 📝 SALESMAN AUTH
+router.post('/salesman/join', salesCtrl.registerSalesman); // रजिस्ट्रेशन
+
+// 🔑 SALESMAN LOGIN (ये लाइन अब सही जगह पर है)
+router.post('/salesman/login', salesCtrl.loginSalesman); 
+
 router.post('/add-note', salesCtrl.addSalesNote);
 router.post('/payout-reset', salesCtrl.resetSalesmanWallet);
 
-// ✅ SALESMAN POOL (Inhe maine UNCOMMENT kar diya hai - Ye zaroori hain)
+// ✅ SALESMAN POOL
 router.get('/sales-pool', salesCtrl.getAvailablePool);
 router.post('/claim-lead', salesCtrl.claimLead);
 router.post('/release-lead', salesCtrl.releaseLead);
