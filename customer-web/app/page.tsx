@@ -15,7 +15,7 @@ import InquiryModal from './components/InquiryModal';
 import { getCategoryStyle } from '../utils/iconHelper';
 import { ChevronRight, LayoutGrid, Loader2 } from 'lucide-react';
 
-// ✅ टॉप १० कैटेगरी (ये हमेशा दिखेंगी, कोई लोडिंग टाइम नहीं)
+// ✅ टॉप १० कैटेगरी (ये हमेशा दिखेंगी)
 const TOP_SERVICES = [
   { id: 't1', name: 'AC Repair' },
   { id: 't2', name: 'Doctor' },
@@ -36,9 +36,10 @@ export default function FinalJustdialHome() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
- 
+
   const API_BASE = "https://api.vister.in/api";
 
+  // डेटा लोड करना
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -54,6 +55,22 @@ export default function FinalJustdialHome() {
     fetchData();
   }, []);
 
+  // ✅ मंतु भाई, यह फंक्शन पक्का करेगा कि क्लिक करने पर सही 'Listing Page' खुले
+  const handleCategoryClick = (categoryName: string) => {
+    // बैकएंड से आई लिस्ट में इस नाम की कैटेगरी ढूंढें
+    const found = categories.find(c => 
+      c.name.toLowerCase().includes(categoryName.toLowerCase())
+    );
+
+    if (found) {
+      // अगर मिल गई, तो उसकी ID वाले पेज पर भेजें (जहाँ आपकी दुकानें लिस्ट हैं)
+      router.push(`/categories/${found._id}`);
+    } else {
+      // अगर अभी डेटा लोड नहीं हुआ है, तो सर्च पेज पर भेजें
+      router.push(`/search-results?category=${categoryName}`);
+    }
+  };
+
   const displayedCats = (categories || []).filter((cat: any) =>
     cat?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -63,12 +80,15 @@ export default function FinalJustdialHome() {
       <JustdialHeader onSearch={(val) => setSearchTerm(val)} />
       <HeroBanners />
 
-      {/* --- ✅ टॉप १० क्विक आइकॉन (पूरी तरह फ्रंटएंड आधारित) --- */}
+      {/* --- ✅ टॉप १० क्विक आइकॉन (Front-end Icons) --- */}
       <div className="max-w-7xl mx-auto px-4 mt-8 grid grid-cols-5 md:grid-cols-10 gap-3">
         {TOP_SERVICES.map((item) => {
           const style = getCategoryStyle(item.name);
           return (
-            <div key={item.id} onClick={() => router.push(`/search-results?category=${item.name}`)} className="flex flex-col items-center group cursor-pointer">
+            <div key={item.id} 
+              onClick={() => handleCategoryClick(item.name)} 
+              className="flex flex-col items-center group cursor-pointer"
+            >
               <div className={`w-12 h-12 md:w-14 md:h-14 ${style.bg} rounded-2xl flex items-center justify-center mb-1.5 border-[1px] border-slate-100 shadow-sm transition-all group-hover:scale-105`}>
                 <div className={style.color}>{style.icon}</div>
               </div>
@@ -97,7 +117,6 @@ export default function FinalJustdialHome() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 md:gap-6">
-            {/* ✅ लोडिंग के समय धुंधले डिब्बे (Skeleton) दिखाना */}
             {isLoading ? (
               Array(16).fill(0).map((_, i) => (
                 <div key={i} className="animate-pulse flex flex-col items-center">
@@ -109,7 +128,10 @@ export default function FinalJustdialHome() {
               displayedCats.map((cat: any) => {
                 const style = getCategoryStyle(cat.name);
                 return (
-                  <div key={cat._id} onClick={() => router.push(`/categories/${cat._id}`)} className="flex flex-col items-center p-3 rounded-2xl hover:bg-blue-50 transition-all cursor-pointer group text-center">
+                  <div key={cat._id} 
+                    onClick={() => router.push(`/categories/${cat._id}`)} 
+                    className="flex flex-col items-center p-3 rounded-2xl hover:bg-blue-50 transition-all cursor-pointer group text-center"
+                  >
                     <div className={`w-12 h-12 md:w-14 md:h-14 ${style.bg} rounded-full flex items-center justify-center mb-2 mx-auto border border-white shadow-sm transition-transform group-hover:scale-110`}>
                       <div className={style.color}>{style.icon}</div>
                     </div>
