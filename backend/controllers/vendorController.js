@@ -5,16 +5,19 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 // ============================================================
-// 1. SELLER REGISTRATION (Email, Password & Photo)
+// 1. SELLER REGISTRATION (Email, Password, Photo & Location)
 // ============================================================
 exports.registerVendor = async (req, res) => {
     try {
         // 🔥 DEBUG LOG: Ye terminal me dikhayega ki Frontend ne kya-kya bheja
         console.log("--- Naya Registration Request ---");
         console.log("Data Received:", req.body);
-        console.log("File Received:", req.file ? req.file.filename : "No Photo");
 
-        const { name, shopName, phone, email, password, category, area, description } = req.body;
+        // ✅ मंतु भाई, यहाँ हमने pincode, city, state और fullAddress को जोड़ दिया है
+        const { 
+            name, shopName, phone, email, password, 
+            category, area, description, pincode, city, state, fullAddress 
+        } = req.body;
 
         // 🛑 BASIC VALIDATION
         if (!email || !password || !phone) {
@@ -39,6 +42,7 @@ exports.registerVendor = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const myReferralCode = "VISTER" + Math.floor(1000 + Math.random() * 9000);
 
+        // ✅ डेटाबेस में नए फील्ड्स को मैप करना
         const newVendor = new Vendor({
             name,
             shopName,
@@ -47,8 +51,12 @@ exports.registerVendor = async (req, res) => {
             password: hashedPassword,
             category,
             area,
-            description: description || "Patna local expert.",
-            shopImage: req.file ? req.file.filename : "",
+            pincode,      // 👈 नया
+            city,         // 👈 नया
+            state,        // 👈 नया
+            fullAddress,  // 👈 नया
+            description: description || "Business expert.",
+            image: req.file ? req.file.filename : "", // Schema के हिसाब से 'image' रखा है
             walletBalance: 0,
             referralCode: myReferralCode
         });
@@ -114,7 +122,7 @@ exports.getVendorDetails = async (req, res) => {
     try {
         const vendor = await Vendor.findById(req.params.id).populate('category').select('-password');
         if (!vendor) return res.status(404).json({ message: "Vendor not found!" });
-        vendor.profileViews += 1;
+        vendor.profileViews = (vendor.profileViews || 0) + 1;
         await vendor.save();
         res.json(vendor);
     } catch (err) { res.status(500).json({ message: err.message }); }
@@ -122,10 +130,11 @@ exports.getVendorDetails = async (req, res) => {
 
 exports.searchVendors = async (req, res) => {
     try {
-        const { query, categoryId, area } = req.query;
+        const { query, categoryId, area, city } = req.query;
         let filter = {};
         if (categoryId) filter.category = categoryId;
         if (area) filter.area = area;
+        if (city) filter.city = city; // ✅ सिटी सर्च भी चालू
         if (query) filter.shopName = { $regex: query, $options: 'i' };
 
         const vendors = await Vendor.find(filter).sort({ isVerified: -1 });
