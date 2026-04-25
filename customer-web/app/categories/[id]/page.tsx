@@ -18,8 +18,8 @@ export default function CategoryListingPage() {
     const router = useRouter();
 
     // ✅ FIXED: Sahi URL format (Double /api hata diya)
-    const API_BASE = "http://localhost:5000/api";
-    const IMAGE_BASE = "http://localhost:5000/uploads"; // Static uploads path
+    const API_BASE = "https://api.vister.in/api";
+const IMAGE_BASE = "https://api.vister.in/uploads";
 
     useEffect(() => {
         const fetchData = async () => {
