@@ -21,6 +21,9 @@ export const getCategoryStyle = (name: string) => {
         return { icon: <Stethoscope size={24} />, bg: 'bg-rose-50', color: 'text-rose-500' };
     if (n.includes('pharmacy') || n.includes('chemist') || n.includes('lab') || n.includes('diagnostic')) 
         return { icon: <Pill size={24} />, bg: 'bg-emerald-50', color: 'text-emerald-600' };
+    if (n.includes('manpower') || n.includes('agency')) {
+    return { icon: <Users size={24} />, bg: 'bg-blue-50', color: 'text-blue-600' };
+}
 
     // 2. Education
     if (n.includes('school') || n.includes('college') || n.includes('university') || n.includes('engineering')) 

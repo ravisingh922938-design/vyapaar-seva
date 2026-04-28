@@ -11,22 +11,23 @@ const salesCtrl = require('../controllers/salesController');
 const upload = multer({ dest: 'uploads/' });
 
 // ============================================================
-// 1. VENDOR AUTH & PROFILE (Sellers / Dukandar)
+// 1. VENDOR SEARCH & LISTING (SABSE UPAR)
 // ============================================================
-router.get('/', vendorController.getAllVendors);
+// ✅ मंतु भाई, '/search' हमेशा '/:id' के ऊपर होना चाहिए। यहाँ एकदम सही है।
 router.get('/search', vendorController.searchVendors);
-router.get('/:id', vendorController.getVendorDetails);
+router.get('/', vendorController.getAllVendors);
+
+// ============================================================
+// 2. VENDOR AUTH & PROFILE (Sellers)
+// ============================================================
 router.post('/register', upload.single('image'), vendorController.registerVendor);
-
-// 🔑 SELLER LOGIN (For Dukandar)
 router.post('/login', vendorController.loginVendor); 
-
 router.put('/update-profile/:id', vendorController.updateProfile);
 router.post('/submit-kyc', vendorController.submitKYC);
 router.put('/update-keywords/:id', vendorController.updateKeywords);
 
 // ============================================================
-// 2. WALLET & FINANCE
+// 3. WALLET & FINANCE
 // ============================================================
 router.get('/wallet/:id', vendorController.getWalletBalance);
 router.put('/recharge/:id', vendorController.addMoney);
@@ -36,25 +37,19 @@ router.get('/transactions/:vendorId', vendorController.getTransactions);
 router.get('/pl-summary/:vendorId', vendorController.getProfitLoss);
 
 // ============================================================
-// 3. SALESMAN CRM TOOLS (Digital Diary, Payouts & Pool)
+// 4. SALESMAN CRM TOOLS
 // ============================================================
-// 📝 SALESMAN AUTH
-router.post('/salesman/join', salesCtrl.registerSalesman); // रजिस्ट्रेशन
-
-// 🔑 SALESMAN LOGIN (ये लाइन अब सही जगह पर है)
+router.post('/salesman/join', salesCtrl.registerSalesman); 
 router.post('/salesman/login', salesCtrl.loginSalesman); 
-
 router.post('/add-note', salesCtrl.addSalesNote);
 router.post('/payout-reset', salesCtrl.resetSalesmanWallet);
-
-// ✅ SALESMAN POOL
 router.get('/sales-pool', salesCtrl.getAvailablePool);
 router.post('/claim-lead', salesCtrl.claimLead);
 router.post('/release-lead', salesCtrl.releaseLead);
 router.get('/my-targets/:salesmanId', salesCtrl.getMyTargets);
 
 // ============================================================
-// 4. LEAD & CRM MANAGEMENT
+// 5. LEAD & CRM MANAGEMENT
 // ============================================================
 router.post('/unlock-lead', vendorController.unlockLead);
 router.post('/send-quote', vendorController.sendQuote);
@@ -62,7 +57,7 @@ router.post('/update-lead-status', vendorController.updateLeadStatus);
 router.get('/tracked-leads/:vendorId', vendorController.getTrackedLeads);
 
 // ============================================================
-// 5. BUSINESS SUPER TOOLS
+// 6. BUSINESS SUPER TOOLS
 // ============================================================
 router.get('/stats/:id', vendorController.getBusinessStats);
 router.get('/reviews/:vendorId', vendorController.getVendorReviews);
@@ -79,9 +74,15 @@ router.get('/my-bookings/:vendorId', vendorController.getMyBookings);
 router.get('/marketing-audience/:vendorId', vendorController.getMarketingAudience);
 
 // ============================================================
-// 6. CUSTOMER SIDE ENQUIRY (Leads)
+// 7. CUSTOMER SIDE ENQUIRY (Leads)
 // ============================================================
 router.post('/send-otp', leadController.sendOTP);
 router.post('/verify-lead', leadController.verifyAndCreateLead);
+
+// ============================================================
+// 8. INDIVIDUAL VENDOR DETAILS (SABSE NEECHE)
+// ============================================================
+// ❌ अगर ये ऊपर होगा तो '/search' को भी ID समझ लेगा। इसलिए इसे नीचे ही रहने दें।
+router.get('/:id', vendorController.getVendorDetails);
 
 module.exports = router;

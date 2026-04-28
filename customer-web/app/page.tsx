@@ -32,6 +32,7 @@ const BACKUP_CATEGORIES = [
 
   // 3. Education
   { _id: 'm31', name: 'Schools' }, { _id: 'm32', name: 'Colleges' }, { _id: 'm33', name: 'Engineering Colleges' },
+  { _id: 'm113', name: 'Manpower Agencies' },
   { _id: 'm34', name: 'Medical Colleges' }, { _id: 'm35', name: 'IAS/UPSC Coaching' }, { _id: 'm36', name: 'IIT/JEE Coaching' },
   { _id: 'm37', name: 'Bank/SSC Coaching' }, { _id: 'm38', name: 'Computer Training' }, { _id: 'm39', name: 'Spoken English Classes' },
   { _id: 'm40', name: 'Music Classes' }, { _id: 'm41', name: 'Dance Classes' }, { _id: 'm42', name: 'Home Tutors' },
@@ -82,7 +83,8 @@ export default function FinalJustdialHome() {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  const API_BASE = "https://api.vister.in/api";
+  
+  const API_BASE = "http://localhost:5000/api";
 
   useEffect(() => {
     const fetchData = async () => {
@@ -102,14 +104,19 @@ export default function FinalJustdialHome() {
     fetchData();
   }, []);
 
-  const handleCategoryClick = (category: any) => {
-    // अगर बैकएंड वाला असली ID है तो उस पर भेजो, वरना सर्च पर
-    if (category._id.startsWith('b')) {
-       router.push(`/search-results?category=${category.name}`);
-    } else {
-       router.push(`/categories/${category._id}`);
-    }
-  };
+  // ✅ मंतु भाई, ये रहा आपका नया Master Function
+const handleCategoryClick = (category: any) => {
+    // १. नाम को URL के हिसाब से 'ac-repair' जैसा बनाएं
+    const slug = category.name.toLowerCase().trim().replace(/\s+/g, '-');
+
+    // २. चेक करें कि ID असली है या बैकअप वाली
+    // अगर ID असली (MongoDB वाली) है तो उसे 'cid' में डालें, वरना नाम डालें
+    const identifier = category._id.length > 15 ? category._id : category.name;
+
+    // ३. अब सीधे लिस्टिंग पर नहीं, बल्कि 'Discovery Page' पर भेजें
+    // हम पीछे से 'cid' भेज रहे हैं ताकि अगले पेज को पता रहे कि कौन सी दुकान ढूंढनी है
+    router.push(`/services/${slug}?cid=${encodeURIComponent(identifier)}`);
+};
 
   const displayedCats = categories.filter((cat: any) =>
     cat?.name?.toLowerCase().includes(searchTerm.toLowerCase())
