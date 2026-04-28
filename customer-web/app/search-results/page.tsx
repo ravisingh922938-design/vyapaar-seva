@@ -21,8 +21,8 @@ function SearchResultsContent() {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const API_BASE = "http://localhost:5000/api"; 
-    const IMAGE_BASE = "http://localhost:5000/uploads";
+    const API_BASE = "https://api.vister.in/api"; 
+    const IMAGE_BASE = "https://api.vister.in/uploads";
 
     // १. डेटा लोड करने का लॉजिक
     useEffect(() => {

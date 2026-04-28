@@ -33,8 +33,8 @@ export default function CategoryListingPage() {
     const [selectedVendor, setSelectedVendor] = useState<any>(null);
 
     // ✅ URL SETUP: लोकल टेस्टिंग के लिए localhost रखें, लाइव के लिए api.vister.in
-    const API_BASE = "http://localhost:5000/api";
-const IMAGE_BASE = "http://localhost:5000/uploads";
+    const API_BASE = "https://api.vister.in/api";
+const IMAGE_BASE = "https://api.vister.in/uploads";
 
     useEffect(() => {
         const fetchData = async () => {

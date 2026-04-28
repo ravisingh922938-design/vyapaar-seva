@@ -84,7 +84,7 @@ export default function FinalJustdialHome() {
   const router = useRouter();
 
   
-  const API_BASE = "http://localhost:5000/api";
+  const API_BASE = "https://api.vister.in/api";
 
   useEffect(() => {
     const fetchData = async () => {

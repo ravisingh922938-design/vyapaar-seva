@@ -16,7 +16,7 @@ export default function InquiryModal({ selectedCat, isOpen, onClose }: any) {
     });
 
     // ✅ लाइव API URL (पुश करने के लिए इसे इस्तेमाल करें)
-    const API_URL = "http://localhost:5000/api/leads/verify-lead";
+    const API_URL = "https://api.vister.in/api/leads/verify-lead";
 
     // डिस्प्ले के लिए नाम निकालें (चाहे ऑब्जेक्ट हो या स्ट्रिंग)
     const catDisplayName = typeof selectedCat === 'object' ? selectedCat?.name : selectedCat;
