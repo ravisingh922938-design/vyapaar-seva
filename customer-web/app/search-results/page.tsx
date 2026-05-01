@@ -10,21 +10,20 @@ function SearchResultsContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     
-    // URL से पैरामीटर पकड़ना
+    // URL Parameters
     const categoryQuery = searchParams.get('category'); 
     const searchQuery = searchParams.get('q');
     const locationQuery = searchParams.get('location');
     const q = categoryQuery || searchQuery || ""; 
 
-    // ✅ TypeScript एरर रोकने के लिए <any[]> लगाया है
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    // LIVE API URL
     const API_BASE = "https://api.vister.in/api"; 
     const IMAGE_BASE = "https://api.vister.in/uploads";
 
-    // १. डेटा लोड करने का लॉजिक
     useEffect(() => {
         const fetchResults = async () => {
             if (!q && !locationQuery) {
@@ -33,11 +32,9 @@ function SearchResultsContent() {
             }
             setLoading(true);
             try {
-                // बैकएंड को सर्च रिक्वेस्ट भेजना
                 const res = await axios.get(`${API_BASE}/vendors/search`, {
                     params: { 
-                        query: q, 
-                        q: q,
+                        query: q, // Backend logic ke hisab se 'query' bhej rahe hain
                         location: locationQuery || "" 
                     }
                 });
@@ -52,7 +49,7 @@ function SearchResultsContent() {
         fetchResults();
     }, [q, locationQuery]);
 
-    // २. १० सेकंड वाला ऑटो-पॉपअप
+    // 10 Second Auto-Popup
     useEffect(() => {
         let timer: any;
         if (!loading && results.length === 0 && q) {
@@ -65,6 +62,7 @@ function SearchResultsContent() {
 
     return (
         <div className="min-h-screen bg-[#F8F9FB]">
+            {/* onSearch prop zaroori hai header mein taki naya search wahin se ho sake */}
             <JustdialHeader onSearch={(val) => router.push(`/search-results?q=${val}`)} />
 
             <div className="bg-white border-b px-6 py-5 flex items-center gap-4 sticky top-0 z-40 shadow-sm">
@@ -72,10 +70,11 @@ function SearchResultsContent() {
                     <ArrowLeft size={22} />
                 </button>
                 <div>
-                    <h2 className="text-xl font-black text-slate-800 uppercase italic tracking-tighter">
+                    <h2 className="text-xl font-black text-slate-800 uppercase italic tracking-tighter leading-none">
                         Results for "<span className="text-blue-600">{q || locationQuery}</span>"
                     </h2>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Testing on Localhost:5000</p>
+                    {/* ✅ SUDHAAR: Yahan "Verified Partners" likh diya hai */}
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Verified Partners in Patna</p>
                 </div>
             </div>
 
@@ -83,14 +82,14 @@ function SearchResultsContent() {
                 {loading ? (
                     <div className="flex flex-col items-center py-40 gap-4">
                         <Loader2 className="animate-spin text-blue-600" size={50} />
-                        <p className="font-black text-slate-400 uppercase text-xs tracking-widest animate-pulse">Searching Database...</p>
+                        <p className="font-black text-slate-400 uppercase text-xs tracking-widest animate-pulse">Searching Vyapaar Seva...</p>
                     </div>
                 ) : results.length === 0 ? (
-                    <div className="text-center py-24 bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
+                    <div className="text-center py-24 bg-white rounded-[3rem] border-2 border-dashed border-slate-100 shadow-inner">
                         <Search size={64} className="mx-auto text-slate-100 mb-4" />
                         <h3 className="text-2xl font-black text-slate-300 uppercase italic tracking-tighter">No Business Found</h3>
-                        <p className="text-slate-400 text-sm mt-2 font-bold mb-6">Aapka enquiry form 10 second me khud khul jayega...</p>
-                        <button onClick={() => setIsModalOpen(true)} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs shadow-lg">LEAVE ENQUIRY NOW</button>
+                        <p className="text-slate-400 text-sm mt-2 font-bold mb-6 italic">Enquiry form 10 second mein khul jayega...</p>
+                        <button onClick={() => setIsModalOpen(true)} className="bg-blue-600 text-white px-10 py-4 rounded-full font-[1000] uppercase text-xs shadow-lg active:scale-95 transition-all">LEAVE ENQUIRY NOW</button>
                     </div>
                 ) : (
                     results.map((vendor: any) => (
@@ -100,12 +99,18 @@ function SearchResultsContent() {
                                     <img 
                                         src={`${IMAGE_BASE}/${vendor.shopImage}`} 
                                         className="w-full h-full object-cover" 
-                                        alt="shop" 
-                                        onError={(e: any) => e.target.src = "https://via.placeholder.com/400x300?text=Shop+Image"}
+                                        alt={vendor.shopName} 
+                                        onError={(e: any) => e.target.src = "https://via.placeholder.com/400x300?text=Vyapaar+Seva"}
                                     />
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-slate-200 bg-slate-100">
                                         <ImageIcon size={48} />
+                                        <p className="text-[10px] font-black mt-2">NO IMAGE</p>
+                                    </div>
+                                )}
+                                {vendor.isVerified && (
+                                    <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full flex items-center gap-1 shadow-lg text-[9px] font-black uppercase">
+                                        <ShieldCheck size={12} /> Verified
                                     </div>
                                 )}
                             </div>
@@ -116,7 +121,7 @@ function SearchResultsContent() {
                                         <h3 className="text-2xl font-[1000] text-slate-800 uppercase italic tracking-tighter">{vendor.shopName}</h3>
                                         <div className="flex items-center gap-1 mt-2 text-slate-500 font-bold text-xs uppercase">
                                             <MapPin size={14} className="text-blue-500" />
-                                            <span>{vendor.area}, {vendor.city || 'India'}</span>
+                                            <span>{vendor.area}, {vendor.city || 'Patna'}</span>
                                         </div>
                                     </div>
                                     <div className="bg-green-600 text-white px-2 py-0.5 rounded-lg font-black text-xs flex items-center gap-1 shadow-md">
@@ -125,7 +130,7 @@ function SearchResultsContent() {
                                 </div>
                                 <div className="mt-8 flex gap-3">
                                     <button className="flex-1 bg-blue-600 text-white font-[1000] py-4 rounded-2xl uppercase text-[10px] tracking-widest shadow-lg active:scale-95 transition-all">Contact Now</button>
-                                    <button onClick={() => setIsModalOpen(true)} className="px-10 border-2 border-slate-100 text-slate-400 font-[1000] py-4 rounded-2xl uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all">Enquiry</button>
+                                    <button onClick={() => { setIsModalOpen(true) }} className="px-10 border-2 border-slate-100 text-slate-400 font-[1000] py-4 rounded-2xl uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all">Enquiry</button>
                                 </div>
                             </div>
                         </div>
