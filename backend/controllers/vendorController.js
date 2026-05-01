@@ -74,48 +74,56 @@ exports.loginVendor = async (req, res) => {
 
 exports.searchVendors = async (req, res) => {
     try {
-        const { query, categoryId } = req.query;
-        const q = query || categoryId;
+        const { query, categoryId, category } = req.query;
+        
+        // Jo bhi parameter mile (q, query, categoryId), use pakad lo
+        const q = query || categoryId || category;
 
-        if (!q || q === 'undefined') return res.status(200).json([]);
-
-        let filterArray = [];
-        const regex = new RegExp(q, 'i');
-
-        // १. अगर q एक असली 24 अक्षर की MongoDB ID है
-        if (q.length === 24 && /^[0-9a-fA-F]+$/.test(q)) {
-            // उस ID का नाम निकालो (जैसे Plumber)
-            const catDoc = await Category.findById(q);
-            
-            // फ़िल्टर में ID और नाम दोनों डालो
-            filterArray.push({ category: q }); 
-            if (catDoc) {
-                filterArray.push({ category: new RegExp(catDoc.name, 'i') });
-            }
-        } else {
-            // २. अगर q एक नाम है (जैसे: Plumber)
-            // पहले डेटाबेस में इस नाम की ID ढूँढो
-            const foundCat = await Category.findOne({ name: regex });
-
-            filterArray.push({ category: regex }); // जहाँ सीधा नाम लिखा है
-            filterArray.push({ shopName: regex }); // दुकान के नाम में भी ढूँढो
-            filterArray.push({ area: regex });     // इलाके में भी ढूँढो
-
-            if (foundCat) {
-                // जहाँ उस कैटेगरी की ID लिखी है उसे भी जोड़ लो
-                filterArray.push({ category: foundCat._id.toString() });
-            }
+        if (!q || q === 'undefined' || q === 'null') {
+            return res.status(200).json([]);
         }
 
-        // ३. मंतु भाई, यहाँ 'OR' कंडीशन का इस्तेमाल किया है ताकी सब कुछ एक साथ आए
-        const vendors = await Vendor.find({ $or: filterArray }).sort({ isVerified: -1 }).lean();
+        const regex = new RegExp(q, 'i'); // 'i' matlab spelling choti ho ya badi, sab chalega
+        let filter = { $or: [] };
+
+        // 1. Basic Fields mein dhoondo (Naam, Area, City, Category Name)
+        filter.$or.push({ shopName: regex });
+        filter.$or.push({ category: regex }); // Agar database mein "Plumber" likha hai toh mil jayega
+        filter.$or.push({ area: regex });
+        filter.$or.push({ city: regex });
+        filter.$or.push({ name: regex }); // Owner name
+
+        // 2. Agar "q" 24 akshar ki MongoDB ID hai
+        if (q.length === 24 && /^[0-9a-fA-F]+$/.test(q)) {
+            filter.$or.push({ category: q }); // ID se dhoondo
+        }
+
+        // 3. SMART LOOKUP: Name se ID aur ID se Name nikal kar search broaden karna
+        try {
+            if (q.length === 24) {
+                // Agar ID aayi hai, toh uska naam nikal lo (e.g. ID -> "Plumber")
+                const catDoc = await Category.findById(q);
+                if (catDoc) filter.$or.push({ category: new RegExp(catDoc.name, 'i') });
+            } else {
+                // Agar Naam aaya hai, toh uski ID nikal lo (e.g. "Plumber" -> ID)
+                const foundCat = await Category.findOne({ name: regex });
+                if (foundCat) filter.$or.push({ category: foundCat._id.toString() });
+            }
+        } catch (e) {
+            console.log("Lookup error but keeping search alive...");
+        }
+
+        // Database se dukanen nikalo
+        const vendors = await Vendor.find(filter).sort({ isVerified: -1 }).lean();
         
-        console.log(`🔎 Result: Found ${vendors.length} vendors for "${q}"`);
+        console.log(`🚀 Search Done: "${q}" | Dukanen mili: ${vendors.length}`);
+        
+        // Hamesha Array hi bhejo
         res.status(200).json(vendors);
 
     } catch (err) {
-        console.error("Search Fail:", err.message);
-        res.status(200).json([]); 
+        console.error("Search Crash Error:", err.message);
+        res.status(200).json([]); // Taaki frontend par loader na ghoome
     }
 };
 // ============================================================
