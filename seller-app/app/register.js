@@ -18,7 +18,8 @@ export default function RegisterScreen() {
     const router = useRouter();
 
     // Live Production API
-    const API_BASE = "http://localhost:5000/api/api";
+    const API_BASE = "https://api.vister.in/api";
+    
 
     // 1. Saari Categories fetch karna (110+)
     useEffect(() => {

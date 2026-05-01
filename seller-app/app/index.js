@@ -27,8 +27,8 @@ export default function SellerLoginScreen() {
     try {
       const cleanEmail = email.toLowerCase().trim();
 
-      // 🔥 सुधार: अब ये /login पर जाएगा, /salesman/login पर नहीं
-      const res = await axios.post(`${API_BASE}/login`, { 
+      // 🔥 सुधार: अब ये /login पर जाएगा, /salesman/login पर नहीं 
+        const res = await axios.post(`${API_BASE}/vendors/login`,{
         email: cleanEmail, 
         password 
       });
