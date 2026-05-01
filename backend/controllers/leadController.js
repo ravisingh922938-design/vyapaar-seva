@@ -1,9 +1,10 @@
 const Lead = require('../models/Lead');
 const Vendor = require('../models/Vendor');
+const Category = require('../models/Category'); // ✅ FIX: Category मॉडल को यहाँ इम्पोर्ट करना ज़रूरी था
 const axios = require('axios');
 
 // ============================================================
-// 1. HELPER: SMS ALERT (सेलर्स को मैसेज भेजने के लिए)
+// 1. HELPER: SMS ALERT
 // ============================================================
 const sendAlertToSellers = async (phoneList, categoryName) => {
     try {
@@ -27,25 +28,22 @@ const sendAlertToSellers = async (phoneList, categoryName) => {
 };
 
 // ============================================================
-// ✅ 2. CREATE LEAD (इंक्वायरी सेव करना - NO MORE OBJECTID ERROR)
+// 2. CREATE LEAD
 // ============================================================
 exports.verifyAndCreateLead = async (req, res) => {
     try {
-        // मंतु भाई, यहाँ हमने सारे ज़रूरी फील्ड्स निकाल लिए हैं
         const { customerName, customerPhone, category, area, pincode, description, fullAddress } = req.body;
 
-        // बुनियादी जाँच
         if (!customerName || !customerPhone || !category) {
-            return res.status(400).json({ status: "error", message: "Details missing hain (Naam, Phone ya Category)!" });
+            return res.status(400).json({ status: "error", message: "Details missing hain!" });
         }
 
         const cleanPhone = customerPhone.replace(/\D/g, '').slice(-10);
 
-        // 💾 मंतु भाई, अब ये 'Plumber' या 'ID' दोनों को String की तरह सेव करेगा
         const newLead = new Lead({
             customerName,
             customerPhone: cleanPhone,
-            category: String(category), // ✅ String में बदल दिया ताकी Cast Error न आए
+            category: String(category), 
             area,
             pincode,
             description: description || "Service Request",
@@ -54,8 +52,6 @@ exports.verifyAndCreateLead = async (req, res) => {
 
         await newLead.save();
 
-        // 🔍 इस काम (Category) से जुड़े वेंडर्स को ढूँढना ताकी उन्हें SMS जाए
-        // हम ID और नाम दोनों तरीके चेक कर रहे हैं ताकी कोई वेंडर न छूटे
         const matchingVendors = await Vendor.find({
             $or: [
                 { category: category },
@@ -68,36 +64,45 @@ exports.verifyAndCreateLead = async (req, res) => {
             sendAlertToSellers(phoneNumbers, category);
         }
 
-        console.log(`🔥 Nayi Lead Saved: ${customerName} for ${category}`);
-
-        res.status(201).json({
-            status: "success",
-            message: "Enquiry submitted successfully!",
-            lead: newLead
-        });
+        res.status(201).json({ status: "success", message: "Enquiry submitted!", lead: newLead });
 
     } catch (err) {
-        console.error("❌ Lead Create Error:", err.message);
         res.status(500).json({ status: "error", message: "Database save fail: " + err.message });
     }
 };
 
 // ============================================================
-// 3. GET LEADS FOR SELLER (सेलर डैशबोर्ड के लिए)
+// ✅ 3. GET LEADS FOR SELLER (यहाँ सबसे बड़ी गड़बड़ थी जिसे अब सही किया गया है)
 // ============================================================
 exports.getLeadsForSeller = async (req, res) => {
     try {
-        const { categoryId } = req.params;
+        const { categoryId } = req.params; // यहाँ अक्सर ID आती है (जैसे 69ceb...)
+        
+        // ✅ FIX: एक लिस्ट (Array) बना रहे हैं ताकी ID और नाम दोनों से सर्च कर सकें
+        let searchList = [categoryId];
 
-        // सेलर की कैटेगरी के हिसाब से लीड्स ढूँढना (नाम या ID दोनों पर चलेगा)
-        const leads = await Lead.find({ category: categoryId }).sort({ createdAt: -1 });
+        // ✅ FIX: अगर categoryId एक असली MongoDB ID है, तो उसका नाम (जैसे 'Plumber') भी ढूँढो
+        if (categoryId.length === 24) {
+            const catDoc = await Category.findById(categoryId);
+            if (catDoc) {
+                searchList.push(catDoc.name); // अब लिस्ट में ID और 'Plumber' दोनों हैं
+            }
+        }
+
+        // ✅ FIX: अब लीड्स ढूँढो जो या तो ID से मैच करें या नाम से
+        const leads = await Lead.find({ 
+            category: { $in: searchList } 
+        }).sort({ createdAt: -1 });
+
+        console.log(`🔎 Leads found for ${categoryId}: ${leads.length}`);
 
         res.status(200).json({
             status: "success",
             leads: leads
         });
     } catch (err) {
-        res.status(500).json({ status: "error", message: "Leads fetch fail!" });
+        console.error("Lead Fetch Error:", err.message);
+        res.status(500).json({ status: "error", message: "Leads load nahi ho payi" });
     }
 };
 
@@ -105,7 +110,7 @@ exports.getLeadsForSeller = async (req, res) => {
 // 4. OTHER HELPERS
 // ============================================================
 exports.sendOTP = async (req, res) => {
-    res.status(200).json({ status: "success", message: "OTP Skip (Direct Mode Active)" });
+    res.status(200).json({ status: "success", message: "OTP Skip" });
 };
 
 exports.getAllLeads = async (req, res) => {

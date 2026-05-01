@@ -13,7 +13,7 @@ const upload = multer({ dest: 'uploads/' });
 // ============================================================
 // 1. VENDOR SEARCH & LISTING (SABSE UPAR)
 // ============================================================
-// ✅ मंतु भाई, '/search' हमेशा '/:id' के ऊपर होना चाहिए। यहाँ एकदम सही है।
+// ✅ सर्च को आईडी से ऊपर रखना ही असली चाबी है
 router.get('/search', vendorController.searchVendors);
 router.get('/', vendorController.getAllVendors);
 
@@ -59,6 +59,7 @@ router.get('/tracked-leads/:vendorId', vendorController.getTrackedLeads);
 // ============================================================
 // 6. BUSINESS SUPER TOOLS
 // ============================================================
+// ✅ मंतु भाई, यहाँ से मैंने फालतू Duplicate /login और /search हटा दिया है
 router.get('/stats/:id', vendorController.getBusinessStats);
 router.get('/reviews/:vendorId', vendorController.getVendorReviews);
 router.post('/reviews/add', vendorController.addReview);
@@ -82,7 +83,7 @@ router.post('/verify-lead', leadController.verifyAndCreateLead);
 // ============================================================
 // 8. INDIVIDUAL VENDOR DETAILS (SABSE NEECHE)
 // ============================================================
-// ❌ अगर ये ऊपर होगा तो '/search' को भी ID समझ लेगा। इसलिए इसे नीचे ही रहने दें।
+// ✅ यह सबसे आख़िरी लाइन होनी चाहिए ताकी ये ऊपर वालों को डिस्टर्ब न करे
 router.get('/:id', vendorController.getVendorDetails);
 
 module.exports = router;
