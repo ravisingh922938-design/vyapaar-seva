@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TouchableOpacity,
-    Alert, ActivityIndicator, ScrollView, StatusBar, Dimensions, RefreshControl
+    Alert, ActivityIndicator, ScrollView, StatusBar, Dimensions, RefreshControl, Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,7 +21,6 @@ export default function AppMasterDashboard() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     
-    // सेलर की जानकारी (लॉगिन के बाद यहाँ स्टोर होगी)
     const [seller, setSeller] = useState({
         id: '',
         name: 'Vister Partner',
@@ -36,10 +35,9 @@ export default function AppMasterDashboard() {
     // --- १. डेटा लोड करने वाला मुख्य फंक्शन ---
     const loadDashboardData = async () => {
         try {
-            // AsyncStorage से डेटा निकालें
             const savedData = await AsyncStorage.getItem('sellerData');
             if (!savedData) {
-                router.replace('/'); // अगर डेटा नहीं है तो लॉगिन पर भेजें
+                router.replace('/'); // लॉगिन पर भेजें
                 return;
             }
 
@@ -57,28 +55,28 @@ export default function AppMasterDashboard() {
 
             // वॉलेट और लीड्स एक साथ मंगाएं
             const [walletRes, leadRes] = await Promise.all([
-                axios.get(`${API_BASE}/vendors/wallet/${sId}`),
-                axios.get(`${API_BASE}/leads/my-leads/${catId}`)
+                axios.get(`${API_BASE}/vendors/wallet/${sId}`).catch(() => ({ data: { balance: 0 } })),
+                axios.get(`${API_BASE}/leads/my-leads/${catId}`).catch(() => ({ data: { leads: [] } }))
             ]);
 
             setBalance(walletRes.data.balance || 0);
+            
+            // ✅ DEBUG: ताकी आपको Console में दिखे डेटा आ रहा है या नहीं
+            console.log("Leads received for Category:", catId, "Count:", leadRes.data.leads?.length);
             setLeads(leadRes.data.leads || []);
 
         } catch (err) {
             console.error("Dashboard Load Error:", err.message);
-            // Alert.alert("Error", "डेटा अपडेट नहीं हो पाया।");
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
     };
 
-    // पहली बार चलने पर
     useEffect(() => {
         loadDashboardData();
     }, []);
 
-    // Pull to Refresh (नीचे खींचने पर रिफ्रेश)
     const onRefresh = useCallback(() => {
         setRefreshing(true);
         loadDashboardData();
@@ -86,44 +84,47 @@ export default function AppMasterDashboard() {
 
     // --- २. लीड अनलॉक करने का लॉजिक ---
     const handleUnlock = async (leadId) => {
-        Alert.alert(
-            "Unlock Lead",
-            "क्या आप ₹20 देकर इस ग्राहक का नंबर देखना चाहते हैं?",
-            [
+        const unlockAction = async () => {
+            try {
+                const res = await axios.post(`${API_BASE}/vendors/unlock-lead`, { 
+                    vendorId: seller.id, 
+                    leadId 
+                });
+                Alert.alert("✅ सफल", `ग्राहक नंबर: ${res.data.customerPhone}`);
+                loadDashboardData(); // बैलेंस अपडेट करें
+            } catch (error) {
+                const msg = error.response?.data?.message || "बैलेंस कम है या सर्वर एरर।";
+                Alert.alert("❌ समस्या", msg);
+            }
+        };
+
+        if (Platform.OS === 'web') {
+            if (window.confirm("क्या आप ₹20 काटकर ग्राहक का नंबर देखना चाहते हैं?")) unlockAction();
+        } else {
+            Alert.alert("Unlock Contact", "₹20 काट लिए जायेंगे। जारी रखें?", [
                 { text: "Nahi", style: "cancel" },
-                {
-                    text: "Haan",
-                    onPress: async () => {
-                        try {
-                            const res = await axios.post(`${API_BASE}/vendors/unlock-lead`, { 
-                                vendorId: seller.id, 
-                                leadId 
-                            });
-                            Alert.alert("✅ सफल", `ग्राहक नंबर: ${res.data.customerPhone}`);
-                            loadDashboardData(); // बैलेंस और लिस्ट अपडेट करें
-                        } catch (error) {
-                            const msg = error.response?.data?.message || "रिचार्ज की ज़रूरत है।";
-                            Alert.alert("❌ बैलेंस कम है", msg);
-                        }
-                    }
-                }
-            ]
-        );
+                { text: "Haan", onPress: unlockAction }
+            ]);
+        }
     };
 
-    // --- ३. लॉगआउट लॉजिक ---
+    // --- ✅ ३. LOGOUT FIX (Web & App Both) ---
     const handleLogout = async () => {
-        Alert.alert("Logout", "क्या आप बाहर निकलना चाहते हैं?", [
-            { text: "Nahi", style: "cancel" },
-            { 
-                text: "Logout", 
-                style: "destructive",
-                onPress: async () => { 
-                    await AsyncStorage.clear(); 
-                    router.replace('/'); 
-                } 
-            }
-        ]);
+        const doLogout = async () => {
+            try {
+                await AsyncStorage.multiRemove(['sellerToken', 'sellerData']);
+                router.replace('/'); 
+            } catch (e) { console.log(e); }
+        };
+
+        if (Platform.OS === 'web') {
+            if (window.confirm("क्या आप लॉगआउट करना चाहते हैं?")) doLogout();
+        } else {
+            Alert.alert("Logout", "क्या आप बाहर निकलना चाहते हैं?", [
+                { text: "Nahi", style: "cancel" },
+                { text: "Logout", style: "destructive", onPress: doLogout }
+            ]);
+        }
     };
 
     // --- ४. हेल्पर्स (UI Components) ---
@@ -146,7 +147,6 @@ export default function AppMasterDashboard() {
         <View style={{ backgroundColor: '#F8F9FB' }}>
             <StatusBar barStyle="light-content" />
 
-            {/* TOP BLUE SECTION */}
             <LinearGradient colors={['#002D62', '#0056b3']} style={styles.topSection}>
                 <View style={styles.userInfo}>
                     <View style={styles.avatar}>
@@ -163,14 +163,11 @@ export default function AppMasterDashboard() {
                 </View>
             </LinearGradient>
 
-            {/* WALLET CARD */}
             <View style={styles.walletCard}>
                 <View>
                     <Text style={styles.walletLabel}>CURRENT BALANCE</Text>
                     <Text style={styles.walletAmount}>₹{balance}</Text>
-                    <TouchableOpacity onPress={() => router.push('/transactions')}>
-                        <Text style={styles.passbookText}>💳 Passbook History ›</Text>
-                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => router.push('/transactions')}><Text style={styles.passbookText}>💳 Passbook History ›</Text></TouchableOpacity>
                 </View>
                 <TouchableOpacity style={styles.rechargeBtn} onPress={() => router.push('/recharge')}>
                     <LinearGradient colors={['#4CAF50', '#388E3C']} style={styles.rechargeGrad}>
@@ -180,7 +177,6 @@ export default function AppMasterDashboard() {
                 </TouchableOpacity>
             </View>
 
-            {/* SUPER TOOLS (ALL 16 TOOLS INCLUDED) */}
             <View style={styles.whiteBox}>
                 <Text style={styles.sectionTitle}>Business Super Tools</Text>
                 <View style={styles.grid}>
@@ -203,7 +199,6 @@ export default function AppMasterDashboard() {
                 </View>
             </View>
 
-            {/* TAB SELECTION */}
             <View style={styles.tabContainer}>
                 <TouchableOpacity style={[styles.tab, activeTab === 'new' && styles.activeTab]} onPress={() => setActiveTab('new')}>
                     <Text style={[styles.tabText, activeTab === 'new' && styles.activeTabText]}>Naye Grahak</Text>
@@ -215,13 +210,18 @@ export default function AppMasterDashboard() {
         </View>
     );
 
-    // --- ५. रेंडरिंग ---
+    // --- ✅ ५. SAFE FILTER LOGIC ---
+    const filteredLeads = leads.filter(l => {
+        const unlockedList = l.unlockedBy || []; // अगर डेटाबेस में field नहीं है तो empty array
+        return activeTab === 'purchased' ? unlockedList.includes(seller.id) : !unlockedList.includes(seller.id);
+    });
+
     return (
         <View style={styles.mainWrapper}>
             <FlatList
                 ListHeaderComponent={renderHeader}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-                data={leads.filter(l => activeTab === 'purchased' ? l.unlockedBy.includes(seller.id) : !l.unlockedBy.includes(seller.id))}
+                data={filteredLeads}
                 keyExtractor={(item) => item._id}
                 renderItem={({ item }) => (
                     <View style={styles.leadCard}>
@@ -237,43 +237,27 @@ export default function AppMasterDashboard() {
                                 <Text style={styles.actionBtnText}>Unlock Contact for ₹20</Text>
                             </TouchableOpacity>
                         ) : (
-                            <TouchableOpacity 
-                                style={[styles.actionBtn, { backgroundColor: '#002D62' }]} 
-                                onPress={() => Alert.alert("Calling...", `Connecting to ${item.customerPhone}`)}
-                            >
+                            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#002D62' }]} onPress={() => Alert.alert("Connecting...", `Calling ${item.customerPhone}`)}>
                                 <Text style={styles.actionBtnText}>📞 Call {item.customerPhone}</Text>
                             </TouchableOpacity>
                         )}
                     </View>
                 )}
-                ListEmptyComponent={!loading && <Text style={styles.emptyMsg}>Filhaal is category me koi lead nahi hai.</Text>}
+                ListEmptyComponent={!loading && <Text style={styles.emptyMsg}>Is category mein koi lead nahi hai.</Text>}
                 contentContainerStyle={{ paddingBottom: 120 }}
             />
 
-            {/* BOTTOM NAVBAR */}
+            {/* NAVBAR */}
             <View style={styles.navbar}>
-                <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/dashboard')}>
-                    <Ionicons name="home" size={24} color="#002D62" />
-                    <Text style={[styles.navText, { color: '#002D62' }]}>Home</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('new')}>
-                    <MaterialCommunityIcons name="flash" size={24} color="#666" />
-                    <Text style={styles.navText}>Leads</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.navItem} onPress={() => router.push('/recharge')}>
-                    <Ionicons name="wallet" size={24} color="#666" />
-                    <Text style={styles.navText}>Wallet</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}>
-                    <Ionicons name="person" size={24} color="#666" />
-                    <Text style={styles.navText}>Profile</Text>
-                </TouchableOpacity>
+                <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/dashboard')}><Ionicons name="home" size={24} color="#002D62" /><Text style={[styles.navText, { color: '#002D62' }]}>Home</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('new')}><MaterialCommunityIcons name="flash" size={24} color="#666" /><Text style={styles.navText}>Leads</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.navItem} onPress={() => router.push('/recharge')}><Ionicons name="wallet" size={24} color="#666" /><Text style={styles.navText}>Wallet</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}><Ionicons name="person" size={24} color="#666" /><Text style={styles.navText}>Profile</Text></TouchableOpacity>
             </View>
         </View>
     );
 }
 
-// --- 🎨 STYLES ---
 const styles = StyleSheet.create({
     mainWrapper: { flex: 1, backgroundColor: '#F8F9FB' },
     topSection: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 70, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -281,7 +265,7 @@ const styles = StyleSheet.create({
     avatar: { width: 45, height: 45, borderRadius: 22.5, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#fff' },
     avatarText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
     shopNameText: { color: '#fff', fontSize: 18, fontWeight: '900' },
-    areaTag: { color: '#FFD700', fontSize: 11, fontWeight: 'bold', marginTop: 2 },
+    areaTag: { color: '#FFD700', fontSize: 11, fontWeight: 'bold' },
     headerIcons: { flexDirection: 'row', gap: 15 },
     notifBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
     walletCard: { backgroundColor: '#fff', marginHorizontal: 20, marginTop: -45, borderRadius: 24, padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', elevation: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
