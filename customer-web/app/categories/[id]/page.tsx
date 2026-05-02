@@ -9,7 +9,7 @@ import {
 import JustdialHeader from '@/app/components/JustdialHeader';
 import InquiryModal from '@/app/components/InquiryModal';
 
-// ✅ बैकअप लिस्ट: ताकि m113 जैसी ID को उनका नाम मिल सके
+// बैकअप लिस्ट: ताकि m113 जैसी ID को उनका नाम मिल सके
 const MEGA_SERVICES_DATA = [
     { _id: 'm1', name: 'AC Repair & Service' },
     { _id: 'm2', name: 'Plumber' },
@@ -19,7 +19,6 @@ const MEGA_SERVICES_DATA = [
     { _id: 'm58', name: 'Lawyers' },
     { _id: 'm62', name: 'Real Estate' },
     { _id: 'm70', name: 'Restaurants' },
-    // मंतु भाई, यहाँ अपनी मेगा लिस्ट के बाकी नाम भी डाल सकते हैं
 ];
 
 export default function CategoryListingPage() {
@@ -32,9 +31,8 @@ export default function CategoryListingPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedVendor, setSelectedVendor] = useState<any>(null);
 
-    // ✅ URL SETUP: लोकल टेस्टिंग के लिए localhost रखें, लाइव के लिए api.vister.in
     const API_BASE = "https://api.vister.in/api";
-const IMAGE_BASE = "https://api.vister.in/uploads";
+    const IMAGE_BASE = "https://api.vister.in/uploads";
 
     useEffect(() => {
         const fetchData = async () => {
@@ -44,18 +42,13 @@ const IMAGE_BASE = "https://api.vister.in/uploads";
                 let fetchUrl = "";
                 let displayName = "Services";
 
-                // ✅ १. मंतु भाई, यहाँ चेक कर रहे हैं कि ID 'Static' है या 'Real Database ID'
                 if (typeof id === 'string' && id.startsWith('m')) {
-                    // अगर m113 जैसी ID है, तो नाम ढूँढो और 'query' से सर्च करो
                     const staticCat = MEGA_SERVICES_DATA.find(c => c._id === id);
                     displayName = staticCat ? staticCat.name : "Business";
                     setCategoryName(displayName);
                     fetchUrl = `${API_BASE}/vendors/search?query=${displayName}`;
                 } else {
-                    // अगर असली MongoDB ID है
                     fetchUrl = `${API_BASE}/vendors/search?categoryId=${id}`;
-                    
-                    // डेटाबेस से उस कैटेगरी का असली नाम लाओ
                     try {
                         const catRes = await axios.get(`${API_BASE}/categories`);
                         const currentCat = catRes.data.find((c: any) => c._id === id);
@@ -63,7 +56,6 @@ const IMAGE_BASE = "https://api.vister.in/uploads";
                     } catch (e) { setCategoryName("Services"); }
                 }
 
-                // २. वेंडर्स का डेटा लाओ
                 const vendorRes = await axios.get(fetchUrl);
                 setVendors(Array.isArray(vendorRes.data) ? vendorRes.data : []);
 
@@ -71,14 +63,15 @@ const IMAGE_BASE = "https://api.vister.in/uploads";
                 console.error("Fetch error:", err);
                 setVendors([]);
             } finally {
-                // ३. लोडिंग बंद करना सबसे ज़रूरी
                 setLoading(false);
             }
         };
         fetchData();
     }, [id]);
 
-    const handleEnquiry = (vendor: any) => {
+    const handleEnquiry = (e: React.MouseEvent, vendor: any) => {
+        // ✅ नया सुधार: ईवेंट को कार्ड तक जाने से रोकें
+        e.stopPropagation(); 
         setSelectedVendor(vendor);
         setIsModalOpen(true);
     };
@@ -87,13 +80,12 @@ const IMAGE_BASE = "https://api.vister.in/uploads";
         <div className="min-h-screen bg-[#F1F3F6] font-sans text-slate-800 pb-20">
             <JustdialHeader onSearch={() => { }} />
 
-            {/* --- TOP NAV BAR --- */}
             <div className="bg-white border-b px-4 py-5 flex items-center gap-4 sticky top-0 z-50 shadow-sm">
                 <button onClick={() => router.push('/')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                     <ArrowLeft size={22} />
                 </button>
                 <div>
-                    <h2 className="text-xl md:text-2xl font-[1000] text-slate-800 uppercase tracking-tighter italic leading-tight">
+                    <h2 className="text-xl md:text-2xl font-[1000] text-slate-800 uppercase italic tracking-tighter leading-tight">
                         {categoryName} <span className="text-blue-600 font-medium lowercase not-italic">in Patna</span>
                     </h2>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Verified Experts Only</p>
@@ -107,23 +99,26 @@ const IMAGE_BASE = "https://api.vister.in/uploads";
                         <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest animate-pulse">Finding best sellers...</p>
                     </div>
                 ) : vendors.length === 0 ? (
-                    <div className="text-center py-24 bg-white rounded-[3rem] border border-slate-200 shadow-inner">
+                    <div className="text-center py-24 bg-white rounded-[3rem] border border-slate-200">
                         <Search size={64} className="mx-auto text-slate-200 mb-4" />
                         <h3 className="text-xl font-black text-slate-400 uppercase italic">Shayad yahan abhi koi seller nahi hai.</h3>
-                        <button onClick={() => setIsModalOpen(true)} className="mt-6 text-blue-600 font-black underline decoration-2 underline-offset-8 uppercase text-xs">LEAVE ENQUIRY FOR US</button>
+                        <button onClick={() => setIsModalOpen(true)} className="mt-6 text-blue-600 font-black underline decoration-2 underline-offset-8 text-xs uppercase">LEAVE ENQUIRY FOR US</button>
                     </div>
                 ) : (
                     vendors.map((vendor: any) => (
-                        <div key={vendor._id} className="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-slate-100 hover:shadow-xl transition-all duration-300">
+                        // ✅ नया सुधार: कार्ड पर क्लिक करने पर वेंडर का प्रोफाइल पेज खुलेगा
+                        <div 
+                            key={vendor._id} 
+                            onClick={() => router.push(`/vendor/${vendor._id}`)} 
+                            className="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-slate-100 hover:shadow-xl transition-all duration-300 cursor-pointer group"
+                        >
                             <div className="flex flex-col md:flex-row p-6 md:p-10 gap-8">
-
-                                {/* --- LEFT: PHOTO --- */}
                                 <div className="w-full md:w-80">
                                     <div className="h-56 bg-slate-50 rounded-[2.5rem] overflow-hidden relative border border-slate-100">
                                         {vendor.shopImage ? (
                                             <img
                                                 src={`${IMAGE_BASE}/${vendor.shopImage}`}
-                                                className="w-full h-full object-cover"
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                                 alt="shop"
                                                 onError={(e: any) => e.target.src = "https://via.placeholder.com/400x300?text=Vyapaar+Seva"}
                                             />
@@ -140,11 +135,10 @@ const IMAGE_BASE = "https://api.vister.in/uploads";
                                     </div>
                                 </div>
 
-                                {/* --- RIGHT: DETAILS --- */}
                                 <div className="flex-1 flex flex-col">
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
-                                            <h3 className="text-2xl md:text-3xl font-[1000] text-slate-900 uppercase italic tracking-tighter">
+                                            <h3 className="text-2xl md:text-3xl font-[1000] text-slate-900 uppercase italic tracking-tighter group-hover:text-blue-600 transition-colors">
                                                 {vendor.shopName}
                                             </h3>
                                             <div className="flex items-center gap-4 mt-2">
@@ -157,27 +151,32 @@ const IMAGE_BASE = "https://api.vister.in/uploads";
                                         <Award size={32} className="text-blue-600 opacity-20" />
                                     </div>
 
-                                    <p className="text-slate-500 font-medium text-sm leading-relaxed mb-6 italic border-l-4 border-blue-50 pl-4">
+                                    <p className="text-slate-500 font-medium text-sm leading-relaxed mb-6 italic border-l-4 border-blue-50 pl-4 line-clamp-2">
                                         "{vendor.description || "Leading expert providing quality services in Patna and nearby areas."}"
                                     </p>
 
                                     <div className="flex items-start gap-2 mb-8">
-                                        <MapPin size={18} className="text-blue-600 shrink-0" />
+                                        <MapPin size={18} className="text-blue-500 shrink-0" />
                                         <p className="text-xs font-black text-slate-600 uppercase">
                                             {vendor.area}, {vendor.city || 'Patna'}
                                         </p>
                                     </div>
 
                                     <div className="mt-auto flex flex-col md:flex-row gap-4">
-                                        <button onClick={() => handleEnquiry(vendor)} className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg hover:bg-blue-700 transition-all active:scale-95">
+                                        <button 
+                                            onClick={(e) => handleEnquiry(e, vendor)} 
+                                            className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg hover:bg-blue-700 transition-all active:scale-95"
+                                        >
                                             Connect Now
                                         </button>
-                                        <button onClick={() => handleEnquiry(vendor)} className="px-10 border-2 border-slate-100 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-400 hover:bg-slate-50 transition-all">
+                                        <button 
+                                            onClick={(e) => handleEnquiry(e, vendor)} 
+                                            className="px-10 border-2 border-slate-100 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-400 hover:bg-slate-50 transition-all"
+                                        >
                                             Chat
                                         </button>
                                     </div>
                                 </div>
-
                             </div>
                         </div>
                     ))

@@ -37,7 +37,7 @@ export default function AppMasterDashboard() {
         try {
             const savedData = await AsyncStorage.getItem('sellerData');
             if (!savedData) {
-                router.replace('/'); // लॉगिन पर भेजें
+                router.replace('/'); 
                 return;
             }
 
@@ -53,7 +53,7 @@ export default function AppMasterDashboard() {
                 category: catId
             });
 
-            // वॉलेट और लीड्स एक साथ मंगाएं
+            // वॉलेट और लीड्स एक साथ मंगाएं (Safe Mode)
             const [walletRes, leadRes] = await Promise.all([
                 axios.get(`${API_BASE}/vendors/wallet/${sId}`).catch(() => ({ data: { balance: 0 } })),
                 axios.get(`${API_BASE}/leads/my-leads/${catId}`).catch(() => ({ data: { leads: [] } }))
@@ -61,8 +61,8 @@ export default function AppMasterDashboard() {
 
             setBalance(walletRes.data.balance || 0);
             
-            // ✅ DEBUG: ताकी आपको Console में दिखे डेटा आ रहा है या नहीं
-            console.log("Leads received for Category:", catId, "Count:", leadRes.data.leads?.length);
+            // ✅ DEBUG LOG
+            console.log("Leads received:", leadRes.data.leads?.length);
             setLeads(leadRes.data.leads || []);
 
         } catch (err) {
@@ -82,35 +82,34 @@ export default function AppMasterDashboard() {
         loadDashboardData();
     }, []);
 
-    // --- २. लीड अनलॉक करने का लॉजिक ---
+    // --- २. लीड अनलॉक करने का लॉजिक (Verified) ---
     const handleUnlock = async (leadId) => {
-        const unlockAction = async () => {
+        const unlockNow = async () => {
             try {
                 const res = await axios.post(`${API_BASE}/vendors/unlock-lead`, { 
                     vendorId: seller.id, 
                     leadId 
                 });
                 Alert.alert("✅ सफल", `ग्राहक नंबर: ${res.data.customerPhone}`);
-                loadDashboardData(); // बैलेंस अपडेट करें
+                loadDashboardData(); 
             } catch (error) {
-                const msg = error.response?.data?.message || "बैलेंस कम है या सर्वर एरर।";
-                Alert.alert("❌ समस्या", msg);
+                Alert.alert("❌ समस्या", "रिचार्ज की ज़रूरत है या सर्वर एरर।");
             }
         };
 
         if (Platform.OS === 'web') {
-            if (window.confirm("क्या आप ₹20 काटकर ग्राहक का नंबर देखना चाहते हैं?")) unlockAction();
+            if (window.confirm("क्या आप ₹20 काटकर ग्राहक का नंबर देखना चाहते हैं?")) unlockNow();
         } else {
-            Alert.alert("Unlock Contact", "₹20 काट लिए जायेंगे। जारी रखें?", [
+            Alert.alert("Unlock Lead", "₹20 काट लिए जायेंगे। जारी रखें?", [
                 { text: "Nahi", style: "cancel" },
-                { text: "Haan", onPress: unlockAction }
+                { text: "Haan", onPress: unlockNow }
             ]);
         }
     };
 
     // --- ✅ ३. LOGOUT FIX (Web & App Both) ---
     const handleLogout = async () => {
-        const doLogout = async () => {
+        const logoutProcess = async () => {
             try {
                 await AsyncStorage.multiRemove(['sellerToken', 'sellerData']);
                 router.replace('/'); 
@@ -118,11 +117,11 @@ export default function AppMasterDashboard() {
         };
 
         if (Platform.OS === 'web') {
-            if (window.confirm("क्या आप लॉगआउट करना चाहते हैं?")) doLogout();
+            if (window.confirm("क्या आप लॉगआउट करना चाहते हैं?")) await logoutProcess();
         } else {
             Alert.alert("Logout", "क्या आप बाहर निकलना चाहते हैं?", [
                 { text: "Nahi", style: "cancel" },
-                { text: "Logout", style: "destructive", onPress: doLogout }
+                { text: "Logout", style: "destructive", onPress: logoutProcess }
             ]);
         }
     };
@@ -147,6 +146,7 @@ export default function AppMasterDashboard() {
         <View style={{ backgroundColor: '#F8F9FB' }}>
             <StatusBar barStyle="light-content" />
 
+            {/* TOP BLUE SECTION */}
             <LinearGradient colors={['#002D62', '#0056b3']} style={styles.topSection}>
                 <View style={styles.userInfo}>
                     <View style={styles.avatar}>
@@ -163,6 +163,7 @@ export default function AppMasterDashboard() {
                 </View>
             </LinearGradient>
 
+            {/* WALLET CARD */}
             <View style={styles.walletCard}>
                 <View>
                     <Text style={styles.walletLabel}>CURRENT BALANCE</Text>
@@ -177,6 +178,7 @@ export default function AppMasterDashboard() {
                 </TouchableOpacity>
             </View>
 
+            {/* ✅ ALL 16 SUPER TOOLS (None Skipped) */}
             <View style={styles.whiteBox}>
                 <Text style={styles.sectionTitle}>Business Super Tools</Text>
                 <View style={styles.grid}>
@@ -199,6 +201,7 @@ export default function AppMasterDashboard() {
                 </View>
             </View>
 
+            {/* TAB SELECTION */}
             <View style={styles.tabContainer}>
                 <TouchableOpacity style={[styles.tab, activeTab === 'new' && styles.activeTab]} onPress={() => setActiveTab('new')}>
                     <Text style={[styles.tabText, activeTab === 'new' && styles.activeTabText]}>Naye Grahak</Text>
@@ -210,9 +213,9 @@ export default function AppMasterDashboard() {
         </View>
     );
 
-    // --- ✅ ५. SAFE FILTER LOGIC ---
+    // --- ✅ ५. SAFE FILTER LOGIC (No Crash) ---
     const filteredLeads = leads.filter(l => {
-        const unlockedList = l.unlockedBy || []; // अगर डेटाबेस में field नहीं है तो empty array
+        const unlockedList = Array.isArray(l.unlockedBy) ? l.unlockedBy : [];
         return activeTab === 'purchased' ? unlockedList.includes(seller.id) : !unlockedList.includes(seller.id);
     });
 
@@ -243,7 +246,7 @@ export default function AppMasterDashboard() {
                         )}
                     </View>
                 )}
-                ListEmptyComponent={!loading && <Text style={styles.emptyMsg}>Is category mein koi lead nahi hai.</Text>}
+                ListEmptyComponent={!loading && <Text style={styles.emptyMsg}>Filhaal is category mein koi lead nahi hai.</Text>}
                 contentContainerStyle={{ paddingBottom: 120 }}
             />
 
@@ -252,7 +255,7 @@ export default function AppMasterDashboard() {
                 <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/dashboard')}><Ionicons name="home" size={24} color="#002D62" /><Text style={[styles.navText, { color: '#002D62' }]}>Home</Text></TouchableOpacity>
                 <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('new')}><MaterialCommunityIcons name="flash" size={24} color="#666" /><Text style={styles.navText}>Leads</Text></TouchableOpacity>
                 <TouchableOpacity style={styles.navItem} onPress={() => router.push('/recharge')}><Ionicons name="wallet" size={24} color="#666" /><Text style={styles.navText}>Wallet</Text></TouchableOpacity>
-                <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}><Ionicons name="person" size={24} color="#666" /><Text style={styles.navText}>Profile</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.navItem} onPress={handleLogout}><Ionicons name="log-out" size={24} color="#f44336" /><Text style={[styles.navText, { color: '#f44336' }]}>Logout</Text></TouchableOpacity>
             </View>
         </View>
     );
@@ -271,7 +274,7 @@ const styles = StyleSheet.create({
     walletCard: { backgroundColor: '#fff', marginHorizontal: 20, marginTop: -45, borderRadius: 24, padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', elevation: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
     walletLabel: { color: '#888', fontSize: 10, fontWeight: 'bold' },
     walletAmount: { color: '#002D62', fontSize: 32, fontWeight: 'bold' },
-    passbookText: { color: '#2196F3', fontSize: 11, fontWeight: 'bold', marginTop: 5 },
+    passbookText: { color: '#2196F3', fontSize: 11, fontWeight: 'bold' },
     rechargeBtn: { borderRadius: 16, overflow: 'hidden' },
     rechargeGrad: { paddingHorizontal: 15, paddingVertical: 12, flexDirection: 'row', alignItems: 'center' },
     rechargeBtnText: { color: 'white', fontWeight: 'bold', marginLeft: 5, fontSize: 12 },

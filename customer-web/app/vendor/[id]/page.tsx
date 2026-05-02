@@ -1,147 +1,138 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
+import { 
+    MapPin, Phone, Star, ShieldCheck, Globe, Clock, 
+    Share2, Heart, ChevronRight, Award, Camera, Info, MessageSquare
+} from 'lucide-react';
+import JustdialHeader from '@/app/components/JustdialHeader';
+import MegaFooter from '@/app/components/MegaFooter';
 
 export default function VendorPublicProfile() {
     const params = useParams();
-    const [data, setData] = useState<any>(null);
+    const [vendor, setVendor] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
 
-    const API_BASE = "http://10.243.86.238:5000/api";
+    // ✅ १. मंतु भाई, यहाँ लाइव URL सेट कर दिया है
+    const API_BASE = "https://api.vister.in/api";
+    const IMAGE_BASE = "https://api.vister.in/uploads";
 
     useEffect(() => {
         if (params.id) {
             axios.get(`${API_BASE}/vendors/${params.id}`)
-                .then(res => { setData(res.data); setLoading(false); })
+                .then(res => {
+                    // अगर डेटा सीधा आ रहा है या .vendor के अंदर, दोनों को संभाला है
+                    setVendor(res.data.vendor || res.data);
+                    setLoading(false);
+                })
                 .catch(err => {
-                    console.log(err);
+                    console.error(err);
                     setLoading(false);
                 });
         }
     }, [params.id]);
 
-    if (loading) return <div className="p-20 text-center font-bold text-blue-600 animate-pulse text-xl">Dukan khul rahi hai...</div>;
-    if (!data || !data.vendor) return <div className="p-20 text-center">Data nahi mil paya.</div>;
-
-    const { vendor, reviews, offers } = data;
-
-    // --- GOOGLE SEO STRUCTURED DATA (JSON-LD) ---
-    const jsonLd = {
-        "@context": "https://schema.org",
-        "@type": "LocalBusiness",
-        "name": vendor.shopName,
-        "description": vendor.description,
-        "image": vendor.images?.[0] || "https://vister.in/default-shop.jpg",
-        "address": {
-            "@type": "PostalAddress",
-            "addressLocality": "Patna",
-            "addressRegion": "Bihar",
-            "streetAddress": vendor.area
-        },
-        "telephone": vendor.phone,
-        "priceRange": "₹₹",
-        "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": reviews.length > 0 ? "4.5" : "0", // Calculation baad mein dynamic kar sakte hain
-            "reviewCount": reviews.length.toString()
-        }
-    };
+    if (loading) return <div className="min-h-screen flex items-center justify-center font-black text-blue-600 animate-pulse uppercase italic">Vyapaar Seva: Dukan khul rahi hai...</div>;
+    
+    if (!vendor) return (
+        <div className="min-h-screen flex flex-col items-center justify-center p-10">
+            <h2 className="text-2xl font-black text-slate-300 uppercase">Data nahi mil paya!</h2>
+            <button onClick={() => router.push('/')} className="mt-4 text-blue-600 font-bold underline">Home Par Jayein</button>
+        </div>
+    );
 
     return (
-        <>
-            {/* SEO Script for Google */}
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-            />
+        <div className="min-h-screen bg-[#F8F9FB] font-sans">
+            <JustdialHeader onSearch={() => {}} />
 
-            <div className="min-h-screen bg-gray-50 pb-20">
-                {/* 1. SHOP HEADER AREA */}
-                <div className="bg-white border-b p-8 shadow-sm">
-                    <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-start gap-6">
-                        <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                                <h1 className="text-4xl font-black text-gray-900">{vendor.shopName}</h1>
-                                {vendor.kycStatus === 'Verified' && (
-                                    <span className="bg-blue-600 text-white text-[10px] px-2 py-1 rounded-full font-bold">✓ VERIFIED</span>
-                                )}
-                            </div>
-                            <p className="text-blue-600 font-bold text-lg mb-4">⭐⭐⭐⭐☆ ({reviews.length} Reviews)</p>
-                            <p className="text-gray-600 max-w-2xl text-lg leading-relaxed">{vendor.description}</p>
-                        </div>
-
-                        <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 min-w-[250px]">
-                            <p className="text-sm font-bold text-blue-800 mb-1">📍 Location</p>
-                            <p className="text-gray-700 mb-4">{vendor.area}, Patna</p>
-                            <a href={`tel:${vendor.phone}`} className="block w-full text-center bg-green-600 text-white font-black py-4 rounded-2xl shadow-lg hover:bg-green-700 transition-all">
-                                📞 CALL NOW
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 mt-10 px-4">
-
-                    {/* LEFT COLUMN: PRODUCTS & SERVICES */}
-                    <div className="lg:col-span-2 space-y-8">
-
-                        {/* A. PRODUCT STORE */}
-                        <section className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
-                            <h3 className="text-2xl font-black mb-6 text-gray-800 uppercase tracking-tight">Available Products 🛒</h3>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                {vendor.services && vendor.services.length > 0 ? vendor.services.map((item: any, i: number) => (
-                                    <div key={i} className="border border-gray-100 p-4 rounded-2xl bg-gray-50 hover:border-blue-500 transition-all cursor-pointer">
-                                        <div className="h-32 bg-gray-200 rounded-xl mb-3 flex items-center justify-center text-3xl">📦</div>
-                                        <p className="font-bold text-gray-800 text-sm">{item.serviceName}</p>
-                                        <p className="text-green-600 font-black">₹{item.price}</p>
-                                    </div>
-                                )) : <p className="text-gray-400">No products listed yet.</p>}
-                            </div>
-                        </section>
-
-                        {/* B. DETAILED SERVICES */}
-                        <section className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
-                            <h3 className="text-2xl font-black mb-6 text-gray-800 uppercase tracking-tight">Our Services & Rates 📋</h3>
-                            <div className="flex flex-wrap gap-2">
-                                {vendor.keywords && vendor.keywords.map((k: string, i: number) => (
-                                    <span key={i} className="bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-xs font-bold border border-blue-100">#{k}</span>
-                                ))}
-                            </div>
-                        </section>
-                    </div>
-
-                    {/* RIGHT COLUMN: REVIEWS & OFFERS */}
-                    <div className="space-y-8">
-                        {/* C. ACTIVE OFFERS */}
-                        {offers && offers.length > 0 && (
-                            <div className="bg-gradient-to-br from-orange-500 to-red-600 p-6 rounded-[2.5rem] text-white shadow-xl">
-                                <h4 className="font-black text-xl mb-4 uppercase">Dhamaka Offers 🔥</h4>
-                                {offers.map((o: any) => (
-                                    <div key={o._id} className="bg-white/20 p-4 rounded-2xl mb-3 border border-white/30">
-                                        <p className="text-2xl font-black">{o.discountValue} OFF</p>
-                                        <p className="font-bold text-sm">{o.title}</p>
-                                    </div>
-                                ))}
-                            </div>
+            {/* --- २. फोटो गैलरी (Justdial Style) --- */}
+            <div className="bg-white border-b">
+                <div className="max-w-7xl mx-auto flex h-[350px] md:h-[400px]">
+                    <div className="flex-[2] bg-slate-100 relative overflow-hidden">
+                        {vendor.shopImage ? (
+                            <img src={`${IMAGE_BASE}/${vendor.shopImage}`} className="w-full h-full object-cover" alt="shop" />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-200"><Camera size={80}/></div>
                         )}
-
-                        {/* D. CUSTOMER REVIEWS */}
-                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
-                            <h4 className="text-xl font-black mb-6 text-gray-800">Reviews ⭐</h4>
-                            <div className="space-y-6">
-                                {reviews && reviews.length > 0 ? reviews.map((r: any) => (
-                                    <div key={r._id} className="border-b border-gray-50 pb-4 last:border-0">
-                                        <p className="font-bold text-gray-800">{r.customerName}</p>
-                                        <p className="text-yellow-500 text-sm">{'★'.repeat(r.rating)}</p>
-                                        <p className="text-gray-600 text-sm italic mt-1">"{r.comment}"</p>
-                                    </div>
-                                )) : <p className="text-gray-400 italic">No reviews yet.</p>}
-                            </div>
+                        <div className="absolute bottom-6 left-6 bg-green-600 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Verified Business</div>
+                    </div>
+                    <div className="flex-1 hidden md:flex flex-col gap-1 pl-1">
+                        <div className="flex-1 bg-slate-200"><img src="https://images.unsplash.com/photo-1581092921461-7d156970aa3e?q=80&w=600" className="w-full h-full object-cover opacity-60" /></div>
+                        <div className="flex-1 bg-blue-600 flex items-center justify-center text-white">
+                             <Text style={{fontWeight:'900', fontSize: 24}}>+17 Photos</Text>
                         </div>
                     </div>
                 </div>
             </div>
-        </>
+
+            <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8">
+                {/* बायाँ भाग: मुख्य जानकारी */}
+                <div className="flex-[2.5] space-y-6">
+                    <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h1 className="text-3xl md:text-4xl font-[1000] text-slate-900 uppercase italic tracking-tighter flex items-center gap-3">
+                                    {vendor.shopName}
+                                    {vendor.isVerified && <ShieldCheck className="text-blue-600" size={32}/>}
+                                </h1>
+                                <div className="flex items-center gap-4 mt-3">
+                                    <div className="bg-green-700 text-white px-3 py-0.5 rounded-lg flex items-center gap-1 font-black text-sm">
+                                        4.5 <Star size={12} fill="white"/>
+                                    </div>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">120 Ratings</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 flex flex-wrap gap-4">
+                             <button className="bg-blue-600 text-white px-10 py-5 rounded-2xl font-[1000] uppercase text-xs shadow-xl shadow-blue-100 flex items-center gap-2 active:scale-95">
+                                <Phone size={18}/> {vendor.phone}
+                             </button>
+                             <button className="border-2 border-blue-600 text-blue-600 px-10 py-5 rounded-2xl font-[1000] uppercase text-xs active:bg-blue-50">Enquire Now</button>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100">
+                        <h3 className="text-xl font-black mb-6 uppercase italic border-l-8 border-blue-600 pl-4">About this place</h3>
+                        <p className="text-slate-500 font-medium leading-loose italic">
+                            "{vendor.description || "Leading expert in Patna providing high-quality professional services since 2018."}"
+                        </p>
+                        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <InfoItem label="Area" value={vendor.area} />
+                             <InfoItem label="City" value={vendor.city || "Patna"} />
+                             <InfoItem label="Pincode" value={vendor.pincode} />
+                             <InfoItem label="Speciality" value={vendor.keywords?.join(", ") || "General"} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* दायाँ भाग: इंक्वायरी फॉर्म */}
+                <div className="flex-1">
+                    <div className="bg-slate-900 p-8 rounded-[3rem] sticky top-24 shadow-2xl text-white">
+                        <h3 className="text-2xl font-black italic uppercase mb-2">Get Quote</h3>
+                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-6 underline decoration-blue-500 underline-offset-4">Direct contact with {vendor.shopName}</p>
+                        
+                        <div className="space-y-4">
+                            <input placeholder="Your Name" className="w-full p-4 rounded-2xl bg-white/10 border border-white/10 text-white font-bold" />
+                            <input placeholder="Mobile" className="w-full p-4 rounded-2xl bg-white/10 border border-white/10 text-white font-bold" />
+                            <button className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-xs shadow-xl mt-4 active:scale-95">Send Details</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+            <MegaFooter />
+        </div>
     );
 }
+
+const InfoItem = ({ label, value }: any) => (
+    <div className="flex justify-between border-b border-slate-50 pb-3">
+        <span className="text-[10px] font-black text-slate-400 uppercase">{label}</span>
+        <span className="text-xs font-black text-slate-700 uppercase">{value}</span>
+    </div>
+);
+
+// React Native style fix for web
+const Text = ({ children, style }: any) => <span style={style}>{children}</span>;

@@ -76,37 +76,36 @@ exports.verifyAndCreateLead = async (req, res) => {
 // ============================================================
 exports.getLeadsForSeller = async (req, res) => {
     try {
-        const { categoryId } = req.params; 
+        const { categoryId } = req.params; // यहाँ ऐप से ID आती है
         const Category = require('../models/Category');
 
-        // १. पहले इस ID का असली नाम पता करो (जैसे: Plumber)
-        // मंतु भाई, यहाँ हम पक्का कर रहे हैं कि अगर ID मिले तो उसका नाम निकाल लें
-        let searchTerms = [categoryId]; 
+        // १. मंतु भाई, यहाँ हम पक्का कर रहे हैं कि ID का असली नाम (Plumber) मिल जाए
+        let searchList = [categoryId]; 
 
-        if (categoryId.length === 24) { // अगर MongoDB ID है
+        if (categoryId.length === 24) { 
             const catDoc = await Category.findById(categoryId).catch(e => null);
             if (catDoc) {
-                searchTerms.push(catDoc.name); // अब लिस्ट में "Plumber" भी है
-                console.log(`🔎 Found Name "${catDoc.name}" for ID: ${categoryId}`);
+                searchList.push(catDoc.name); // अब इसमें "Plumber" जुड़ गया
             }
         }
 
-        // २. अब लीड्स ढूँढो जो या तो ID से मैच करें या नाम से
+        // २. अब डेटाबेस में ढूंढो जो आईडी या नाम किसी से भी मेल खाए
         const leads = await Lead.find({
-            category: { $in: searchTerms } // ID या नाम, जो भी मिल जाए
-        }).sort({ createdAt: -1 });
+            category: { $in: searchList }
+        }).sort({ createdAt: -1 }).lean();
 
-        console.log(`✅ Leads found: ${leads.length} for Category identifier: ${categoryId}`);
+        console.log(`🔎 Total Leads found: ${leads.length} for ${categoryId}`);
 
         res.status(200).json({
             status: "success",
-            leads: leads
+            leads: leads // ये एरे अब आपकी ऐप में जाएगा
         });
     } catch (err) {
         console.error("Lead Fetch Error:", err.message);
-        res.status(200).json({ status: "success", leads: [] }); 
+        res.status(200).json({ status: "success", leads: [] });
     }
 };
+
 // ============================================================
 // 4. OTHER HELPERS
 // ============================================================

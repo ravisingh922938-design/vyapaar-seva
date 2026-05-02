@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, Suspense } from 'react';
+// १. useRouter पहले से ही 'next/navigation' से इम्पोर्टेड है
 import { useSearchParams, useRouter } from 'next/navigation';
 import axios from 'axios';
 import { MapPin, Star, ShieldCheck, ArrowLeft, Loader2, Search, Image as ImageIcon, Phone } from 'lucide-react';
@@ -8,9 +9,9 @@ import InquiryModal from '../components/InquiryModal';
 
 function SearchResultsContent() {
     const searchParams = useSearchParams();
-    const router = useRouter();
+    // २. router पहले से ही डिफाइन किया हुआ है
+    const router = useRouter(); 
     
-    // URL Parameters
     const categoryQuery = searchParams.get('category'); 
     const searchQuery = searchParams.get('q');
     const locationQuery = searchParams.get('location');
@@ -20,7 +21,6 @@ function SearchResultsContent() {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // LIVE API URL
     const API_BASE = "https://api.vister.in/api"; 
     const IMAGE_BASE = "https://api.vister.in/uploads";
 
@@ -34,7 +34,7 @@ function SearchResultsContent() {
             try {
                 const res = await axios.get(`${API_BASE}/vendors/search`, {
                     params: { 
-                        query: q, // Backend logic ke hisab se 'query' bhej rahe hain
+                        query: q, 
                         location: locationQuery || "" 
                     }
                 });
@@ -49,7 +49,6 @@ function SearchResultsContent() {
         fetchResults();
     }, [q, locationQuery]);
 
-    // 10 Second Auto-Popup
     useEffect(() => {
         let timer: any;
         if (!loading && results.length === 0 && q) {
@@ -62,7 +61,6 @@ function SearchResultsContent() {
 
     return (
         <div className="min-h-screen bg-[#F8F9FB]">
-            {/* onSearch prop zaroori hai header mein taki naya search wahin se ho sake */}
             <JustdialHeader onSearch={(val) => router.push(`/search-results?q=${val}`)} />
 
             <div className="bg-white border-b px-6 py-5 flex items-center gap-4 sticky top-0 z-40 shadow-sm">
@@ -73,7 +71,6 @@ function SearchResultsContent() {
                     <h2 className="text-xl font-black text-slate-800 uppercase italic tracking-tighter leading-none">
                         Results for "<span className="text-blue-600">{q || locationQuery}</span>"
                     </h2>
-                    {/* ✅ SUDHAAR: Yahan "Verified Partners" likh diya hai */}
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Verified Partners in Patna</p>
                 </div>
             </div>
@@ -93,7 +90,12 @@ function SearchResultsContent() {
                     </div>
                 ) : (
                     results.map((vendor: any) => (
-                        <div key={vendor._id} className="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-slate-100 flex flex-col md:flex-row hover:shadow-xl transition-all duration-300">
+                        // ✅ नया सुधार: यहाँ कार्ड पर क्लिक करने पर वेंडर प्रोफाइल खुलेगा
+                        <div 
+                            key={vendor._id} 
+                            onClick={() => router.push(`/vendor/${vendor._id}`)} 
+                            className="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-slate-100 flex flex-col md:flex-row hover:shadow-xl transition-all duration-300 cursor-pointer"
+                        >
                             <div className="w-full md:w-64 h-48 bg-slate-50 relative border-r">
                                 {vendor.shopImage ? (
                                     <img 
@@ -129,8 +131,19 @@ function SearchResultsContent() {
                                     </div>
                                 </div>
                                 <div className="mt-8 flex gap-3">
-                                    <button className="flex-1 bg-blue-600 text-white font-[1000] py-4 rounded-2xl uppercase text-[10px] tracking-widest shadow-lg active:scale-95 transition-all">Contact Now</button>
-                                    <button onClick={() => { setIsModalOpen(true) }} className="px-10 border-2 border-slate-100 text-slate-400 font-[1000] py-4 rounded-2xl uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all">Enquiry</button>
+                                    {/* ✅ नया सुधार:stopPropagation() लगाया है ताकी बटन क्लिक करने पर पूरा कार्ड न दबे */}
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); router.push(`tel:${vendor.phone}`); }} 
+                                        className="flex-1 bg-blue-600 text-white font-[1000] py-4 rounded-2xl uppercase text-[10px] tracking-widest shadow-lg active:scale-95 transition-all"
+                                    >
+                                        Contact Now
+                                    </button>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); setIsModalOpen(true); }} 
+                                        className="px-10 border-2 border-slate-100 text-slate-400 font-[1000] py-4 rounded-2xl uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all"
+                                    >
+                                        Enquiry
+                                    </button>
                                 </div>
                             </div>
                         </div>
