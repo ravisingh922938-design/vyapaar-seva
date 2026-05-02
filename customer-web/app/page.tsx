@@ -79,7 +79,7 @@ export default function FinalJustdialHome() {
   const [categories, setCategories] = useState<any[]>(BACKUP_CATEGORIES); 
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
@@ -103,6 +103,24 @@ export default function FinalJustdialHome() {
     };
     fetchData();
   }, []);
+    useEffect(() => {
+  const timer = setTimeout(() => {
+    // अगर यूजर ने कुछ सर्च नहीं किया और पॉपअप अभी बंद है
+    if (!isModalOpen && searchTerm === "") {
+      
+      // ✅ अगर पहले से कोई कैटेगरी सेलेक्ट नहीं है, तो 'Vyapaar Seva' सेट करो
+      if (!selectedCategory) {
+        setSelectedCategory({ name: "Vyapaar Seva", _id: "general_enquiry" } as any);
+      }
+      
+      setIsModalOpen(true);
+      console.log("🚀 10 Second General Enquiry Popup Opened!");
+    }
+  }, 10000);
+
+    return () => clearTimeout(timer); // अगर यूजर पेज छोड़ दे तो टाइमर बंद
+  }, [isModalOpen, searchTerm, categories]);
+  
 
   // ✅ मंतु भाई, ये रहा आपका नया Master Function
 const handleCategoryClick = (category: any) => {
@@ -122,12 +140,12 @@ const handleCategoryClick = (category: any) => {
     cat?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  return (
+   return (
     <div className="min-h-screen bg-[#F8F9FB] font-sans text-slate-800">
-      <JustdialHeader onSearch={(val) => setSearchTerm(val)} />
+      <JustdialHeader onSearch={(val: string) => setSearchTerm(val)} />
       <HeroBanners />
 
-      {/* --- ✅ टॉप १० क्विक आइकॉन (Front-end - कभी गायब नहीं होंगे) --- */}
+      {/* टॉप १० आइकॉन */}
       <div className="max-w-7xl mx-auto px-4 mt-8 grid grid-cols-5 md:grid-cols-10 gap-3">
         {TOP_SERVICES.map((item) => {
           const style = getCategoryStyle(item.name);
@@ -136,7 +154,7 @@ const handleCategoryClick = (category: any) => {
               <div className={`w-12 h-12 md:w-14 md:h-14 ${style.bg} rounded-2xl flex items-center justify-center mb-1.5 border-[1px] border-slate-100 shadow-sm transition-all group-hover:scale-105`}>
                 <div className={style.color}>{style.icon}</div>
               </div>
-              <p className="text-[9px] font-[1000] text-slate-500 text-center uppercase leading-tight truncate w-full px-1">{item.name}</p>
+              <p className="text-[9px] font-black text-slate-500 text-center uppercase leading-tight truncate w-full px-1">{item.name}</p>
             </div>
           );
         })}
@@ -145,14 +163,14 @@ const handleCategoryClick = (category: any) => {
       <SearchDiscovery />
       <CuratedSections />
 
-      {/* --- मेन सर्विस ग्रिड (११०+ आइकॉन) --- */}
+      {/* मेन सर्विस ग्रिड */}
       <main className="max-w-7xl mx-auto px-4 mt-12 mb-20">
         <div className="bg-white p-6 md:p-12 rounded-[3rem] shadow-sm border-[1px] border-slate-200">
           <div className="flex justify-between items-center mb-10 px-2">
             <div className="flex items-center gap-2">
               <LayoutGrid size={24} className="text-blue-600" />
               <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">
-                {searchTerm ? `Searching: "${searchTerm}"` : "Browse All Services"}
+                {searchTerm ? `Searching: "${searchTerm}"` : `Browse ${BACKUP_CATEGORIES.length}+ Services`}
               </h3>
             </div>
             <button onClick={() => router.push('/all-categories')} className="text-blue-600 font-bold text-xs flex items-center hover:underline">
@@ -161,7 +179,6 @@ const handleCategoryClick = (category: any) => {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 md:gap-6">
-             {/* ✅ मंतु भाई, यहाँ अब एरर आने पर भी बैकअप डेटा दिखेगा */}
              {displayedCats.map((cat: any) => {
                 const style = getCategoryStyle(cat.name);
                 return (

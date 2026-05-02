@@ -1,20 +1,22 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { MapPin, Search, Mic, Menu, User, Navigation } from 'lucide-react';
+import { 
+  MapPin, Search, Mic, Menu, User, Navigation, 
+  Megaphone, Bell, Briefcase, TrendingUp, Globe 
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-    export default function JustdialHeader({ onSearch }: any) { 
+export default function JustdialHeader({ onSearch }: any) {
   const [location, setLocation] = useState("Detecting Location...");
   const [searchValue, setSearchValue] = useState("");
   const router = useRouter();
 
-  // ✅ 1. LIVE LOCATION FETCH KARNE KA LOGIC
+  // ✅ 1. LIVE LOCATION LOGIC (Reverse Geocoding)
   useEffect(() => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-          // OpenStreetMap ki free API use karke City ka naam nikal rahe hain
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
           );
@@ -22,11 +24,9 @@ import { useRouter } from 'next/navigation';
           const city = data.address.city || data.address.suburb || data.address.state || "Patna";
           setLocation(city);
         } catch (error) {
-          setLocation("Patna, Bihar"); // Fallback
+          setLocation("Patna, Bihar");
         }
-      }, () => {
-        setLocation("Patna, Bihar"); // Permission deny hone par
-      });
+      }, () => setLocation("Patna, Bihar"));
     }
   }, []);
 
@@ -38,63 +38,89 @@ import { useRouter } from 'next/navigation';
   };
 
   return (
-    <header className="bg-white border-b sticky top-0 z-[100] py-3 px-4 shadow-sm">
-      <div className="max-w-7xl mx-auto">
+    <header className="bg-white border-b sticky top-0 z-[100] shadow-sm font-sans">
+      
+      {/* --- ROW 1: MINI UTILITY NAV (Desktop Only) --- */}
+      <div className="hidden md:flex bg-slate-50 border-b border-slate-100 py-1.5 px-6 justify-end items-center gap-6">
+        <div className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors">
+            <Globe size={12} className="text-slate-400"/>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">EN</span>
+        </div>
+        <span onClick={() => router.push('/hiring')} className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter cursor-pointer hover:text-blue-600">We are Hiring</span>
+        <span onClick={() => router.push('/investor')} className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter cursor-pointer hover:text-blue-600">Investor Relations</span>
         
-        {/* Top Row: Logo and Login */}
-        <div className="flex justify-between items-center mb-3">
-          <div className="flex items-center gap-2">
-             <Menu className="md:hidden text-slate-600" size={24} />
-             <h1 onClick={() => router.push('/')} className="text-2xl font-[1000] text-blue-600 cursor-pointer italic tracking-tighter uppercase">VYAPAAR SEVA</h1>
-          </div>
-          <div className="flex items-center gap-4">
-             <button className="hidden md:block text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-blue-600">Advertise</button>
-             <button onClick={() => router.push('/free-listing')} className="hidden md:block text-[10px] font-black text-white bg-blue-600 px-4 py-2 rounded-full uppercase shadow-lg shadow-blue-100">Free Listing</button>
-             <button className="bg-blue-50 text-blue-600 p-2 rounded-full md:px-6 md:py-2 md:rounded-xl flex items-center gap-2">
-                <User size={18} />
-                <span className="hidden md:block font-black text-xs uppercase">Login / Sign Up</span>
-             </button>
+        {/* LEADS BUTTON (Skip nahi kiya) */}
+        <div onClick={() => router.push('/leads')} className="flex items-center gap-1 cursor-pointer bg-white px-3 py-1 rounded-full border border-slate-200 hover:bg-red-50">
+            <Bell size={12} className="text-red-500"/>
+            <span className="text-[10px] font-[1000] text-slate-700 uppercase tracking-tighter">Leads</span>
+        </div>
+
+        {/* ADVERTISE BUTTON */}
+        <div onClick={() => router.push('/advertise')} className="flex items-center gap-1 cursor-pointer hover:text-blue-600">
+            <Megaphone size={12} className="text-slate-400"/>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Advertise</span>
+        </div>
+
+        {/* FREE LISTING BUTTON */}
+        <div onClick={() => router.push('/free-listing')} className="flex items-center gap-1 cursor-pointer bg-blue-600 px-3 py-1 rounded-full shadow-lg shadow-blue-100">
+            <TrendingUp size={12} className="text-white"/>
+            <span className="text-[10px] font-[1000] text-white uppercase tracking-tighter">Free Listing</span>
+        </div>
+      </div>
+
+      {/* --- ROW 2: LOGO & LOGIN --- */}
+      <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <Menu className="md:hidden text-slate-600" size={24} />
+          <div onClick={() => router.push('/')} className="cursor-pointer">
+             <h1 className="text-2xl font-[1000] text-blue-600 italic tracking-tighter uppercase leading-none">VYAPAARSEVA</h1>
+             <p className="text-[8px] font-black text-slate-400 tracking-[0.3em] uppercase hidden md:block">India's Local Search Engine</p>
           </div>
         </div>
 
-        {/* ✅ 2. RESPONSIVE SEARCH BAR (Mobile par stack ho jayega) */}
-        <div className="flex flex-col md:flex-row items-center gap-2">
+        {/* LOGIN BUTTON (Action added) */}
+        <button 
+          onClick={() => router.push('/auth')} 
+          className="bg-blue-600 text-white px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95"
+        >
+          <User size={18} />
+          <span className="font-black text-xs uppercase tracking-tight">Login / Sign Up</span>
+        </button>
+      </div>
+
+      {/* --- ROW 3: SEARCH & LOCATION (Responsive) --- */}
+      <div className="max-w-7xl mx-auto px-4 pb-4">
+        <div className="flex flex-col md:flex-row items-stretch gap-2">
           
           {/* Location Box */}
-          <div className="w-full md:w-1/3 flex items-center bg-slate-100 p-3 rounded-2xl md:rounded-l-2xl md:rounded-r-none border border-slate-200">
+          <div className="md:w-1/3 flex items-center bg-slate-50 p-3.5 rounded-2xl md:rounded-l-2xl md:rounded-r-none border border-slate-200">
             <MapPin size={18} className="text-blue-600 mr-2 shrink-0" />
-            <span className="text-xs font-bold text-slate-700 truncate flex-1">{location}</span>
-            <Navigation size={14} className="text-slate-400 ml-2 animate-pulse" />
+            <div className="flex-1">
+               <p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Location</p>
+               <p className="text-xs font-black text-slate-700 truncate">{location}</p>
+            </div>
+            <Navigation size={14} className="text-blue-500 ml-2 animate-pulse" />
           </div>
 
-          {/* Search Input Box */}
-          <div className="w-full md:flex-1 flex items-center bg-white border-2 border-slate-200 p-1 rounded-2xl md:rounded-none md:border-l-0">
+          {/* Search Box */}
+          <div className="flex-1 flex items-center bg-white border-2 border-slate-200 p-1.5 rounded-2xl md:rounded-r-2xl md:rounded-l-none md:border-l-0">
             <input 
-              className="flex-1 p-2 text-sm font-bold outline-none text-slate-800 placeholder:text-slate-400"
-              placeholder="Search for Services (e.g. AC, Plumber)"
+              className="flex-1 px-3 text-sm font-bold outline-none text-slate-800 placeholder:text-slate-400"
+              placeholder="Search for Services, Shops or Category..."
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearchTrigger()}
             />
-            <Mic size={18} className="text-blue-500 mx-2 hidden sm:block" />
+            <Mic size={18} className="text-blue-500 mx-3 hidden sm:block" />
             
-            {/* Desktop Search Button */}
             <button 
               onClick={handleSearchTrigger}
-              className="bg-orange-500 text-white p-3 rounded-xl hidden md:block hover:bg-orange-600 transition-all"
+              className="bg-orange-500 text-white px-6 py-3 rounded-xl hover:bg-orange-600 transition-all flex items-center gap-2"
             >
               <Search size={20} />
+              <span className="hidden lg:block font-black text-xs uppercase tracking-widest">Search</span>
             </button>
           </div>
-
-          {/* Mobile Search Button (Only visible on small screens) */}
-          <button 
-            onClick={handleSearchTrigger}
-            className="w-full md:hidden bg-orange-500 text-white py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
-          >
-            <Search size={20} />
-            <span className="font-black text-sm uppercase">Search Now</span>
-          </button>
 
         </div>
       </div>

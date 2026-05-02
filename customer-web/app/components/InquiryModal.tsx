@@ -15,11 +15,12 @@ export default function InquiryModal({ selectedCat, isOpen, onClose }: any) {
         purpose: ''
     });
 
-    // ✅ लाइव API URL (पुश करने के लिए इसे इस्तेमाल करें)
+    // ✅ लाइव API URL
     const API_URL = "https://api.vister.in/api/leads/verify-lead";
 
-    // डिस्प्ले के लिए नाम निकालें (चाहे ऑब्जेक्ट हो या स्ट्रिंग)
-    const catDisplayName = typeof selectedCat === 'object' ? selectedCat?.name : selectedCat;
+    // ✅ १. मंतु भाई, यहाँ चेक कर रहे हैं कि ये जनरल इंक्वायरी है या कैटेगरी वाली
+    const catName = typeof selectedCat === 'object' ? (selectedCat?.name || "Vyapaar Seva") : (selectedCat || "Vyapaar Seva");
+    const isGeneral = catName === "Vyapaar Seva";
 
     useEffect(() => {
         if (isOpen) {
@@ -41,20 +42,17 @@ export default function InquiryModal({ selectedCat, isOpen, onClose }: any) {
 
         setLoading(true);
 
-        // ✅ मंतु भाई, यहाँ सुधार है: 
-        // अगर selectedCat एक ऑब्जेक्ट है तो उसकी ID लो, वरना सीधा नाम भेजो
+        // कैटेगरी की वैल्यू सेट करना
         const categoryValue = typeof selectedCat === 'object' ? (selectedCat?._id || selectedCat?.name) : selectedCat;
 
         const payload = {
             customerName: formData.name,
             customerPhone: formData.phone,
             area: formData.area,
-            category: categoryValue, // अब ये खाली (undefined) नहीं जाएगा
-            description: formData.purpose, // बैकएंड इसे description मांग रहा है
+            category: categoryValue || "Vyapaar Seva", 
+            description: formData.purpose,
             fullAddress: formData.fullAddress
         };
-
-        console.log("📤 Sending Lead Data:", payload);
 
         try {
             const res = await axios.post(API_URL, payload);
@@ -62,8 +60,8 @@ export default function InquiryModal({ selectedCat, isOpen, onClose }: any) {
                 setSubmitted(true);
             }
         } catch (err: any) {
-            console.error("❌ Error Detail:", err.response?.data);
-            alert("Galti hui! " + (err.response?.data?.message || "Check required fields"));
+            console.error("❌ Error:", err.response?.data);
+            alert("Galti hui! Check fields.");
         } finally {
             setLoading(false);
         }
@@ -72,6 +70,8 @@ export default function InquiryModal({ selectedCat, isOpen, onClose }: any) {
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[1000] p-4">
             <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+                
+                {/* Header */}
                 <div className="bg-blue-600 p-6 text-white text-center">
                     <button onClick={onClose} className="absolute top-4 right-5 text-white/70 hover:text-white transition-all">
                         <X size={24} />
@@ -82,8 +82,11 @@ export default function InquiryModal({ selectedCat, isOpen, onClose }: any) {
                 <div className="p-8 max-h-[80vh] overflow-y-auto">
                     {!submitted ? (
                         <form onSubmit={handleSubmit} className="space-y-4">
+                            
+                            {/* ✅ २. मंतु भाई, यहाँ टाइटल अब बदल जाएगा */}
                             <h4 className="text-xl font-bold text-center text-slate-700 uppercase italic">
-                                Quotes for <span className="text-blue-600">{catDisplayName}</span>
+                                {isGeneral ? "General Inquiry for " : "Quotes for "}
+                                <span className="text-blue-600">{catName}</span>
                             </h4>
 
                             <div className="relative">
@@ -129,9 +132,15 @@ export default function InquiryModal({ selectedCat, isOpen, onClose }: any) {
                         <div className="text-center py-10">
                             <CheckCircle size={80} className="text-green-600 mx-auto mb-6 animate-bounce" />
                             <h4 className="text-3xl font-black italic uppercase text-slate-800 tracking-tighter">Request Sent!</h4>
-                            <p className="text-sm text-slate-500 mt-4 font-bold uppercase leading-relaxed">
-                                Experts for <span className="text-blue-600">{catDisplayName}</span> will call you soon.
+                            
+                            {/* ✅ ३. यहाँ मैसेज भी अब स्मार्ट दिखेगा */}
+                            <p className="text-sm text-slate-500 mt-4 font-bold uppercase leading-relaxed text-center px-4">
+                                {isGeneral 
+                                    ? "Our team from Vyapaar Seva will call you soon." 
+                                    : `Verified experts for ${catName} will call you soon.`
+                                }
                             </p>
+                            
                             <button onClick={onClose} className="mt-10 bg-slate-900 text-white px-12 py-4 rounded-full font-black uppercase text-xs shadow-2xl">
                                 CLOSE
                             </button>
