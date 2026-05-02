@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useEffect, Suspense } from 'react';
-// १. useRouter पहले से ही 'next/navigation' से इम्पोर्टेड है
 import { useSearchParams, useRouter } from 'next/navigation';
 import axios from 'axios';
 import { MapPin, Star, ShieldCheck, ArrowLeft, Loader2, Search, Image as ImageIcon, Phone } from 'lucide-react';
@@ -9,8 +8,7 @@ import InquiryModal from '../components/InquiryModal';
 
 function SearchResultsContent() {
     const searchParams = useSearchParams();
-    // २. router पहले से ही डिफाइन किया हुआ है
-    const router = useRouter(); 
+    const router = useRouter(); // ✅ राउटर यहाँ डिफाइन है
     
     const categoryQuery = searchParams.get('category'); 
     const searchQuery = searchParams.get('q');
@@ -33,10 +31,7 @@ function SearchResultsContent() {
             setLoading(true);
             try {
                 const res = await axios.get(`${API_BASE}/vendors/search`, {
-                    params: { 
-                        query: q, 
-                        location: locationQuery || "" 
-                    }
+                    params: { query: q, location: locationQuery || "" }
                 });
                 setResults(Array.isArray(res.data) ? res.data : []);
             } catch (err) {
@@ -61,7 +56,8 @@ function SearchResultsContent() {
 
     return (
         <div className="min-h-screen bg-[#F8F9FB]">
-            <JustdialHeader onSearch={(val) => router.push(`/search-results?q=${val}`)} />
+            {/* ✅ मंतु भाई, यहाँ 'val' के नीचे से लाल लाइन हट जाएगी अगर स्टेप 2 सही करोगे */}
+            <JustdialHeader onSearch={(val: string) => router.push(`/search-results?q=${val}`)} />
 
             <div className="bg-white border-b px-6 py-5 flex items-center gap-4 sticky top-0 z-40 shadow-sm">
                 <button onClick={() => router.push('/')} className="p-2 hover:bg-slate-100 rounded-full transition-all">
@@ -82,15 +78,13 @@ function SearchResultsContent() {
                         <p className="font-black text-slate-400 uppercase text-xs tracking-widest animate-pulse">Searching Vyapaar Seva...</p>
                     </div>
                 ) : results.length === 0 ? (
-                    <div className="text-center py-24 bg-white rounded-[3rem] border-2 border-dashed border-slate-100 shadow-inner">
+                    <div className="text-center py-24 bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
                         <Search size={64} className="mx-auto text-slate-100 mb-4" />
                         <h3 className="text-2xl font-black text-slate-300 uppercase italic tracking-tighter">No Business Found</h3>
-                        <p className="text-slate-400 text-sm mt-2 font-bold mb-6 italic">Enquiry form 10 second mein khul jayega...</p>
                         <button onClick={() => setIsModalOpen(true)} className="bg-blue-600 text-white px-10 py-4 rounded-full font-[1000] uppercase text-xs shadow-lg active:scale-95 transition-all">LEAVE ENQUIRY NOW</button>
                     </div>
                 ) : (
                     results.map((vendor: any) => (
-                        // ✅ नया सुधार: यहाँ कार्ड पर क्लिक करने पर वेंडर प्रोफाइल खुलेगा
                         <div 
                             key={vendor._id} 
                             onClick={() => router.push(`/vendor/${vendor._id}`)} 
@@ -98,12 +92,7 @@ function SearchResultsContent() {
                         >
                             <div className="w-full md:w-64 h-48 bg-slate-50 relative border-r">
                                 {vendor.shopImage ? (
-                                    <img 
-                                        src={`${IMAGE_BASE}/${vendor.shopImage}`} 
-                                        className="w-full h-full object-cover" 
-                                        alt={vendor.shopName} 
-                                        onError={(e: any) => e.target.src = "https://via.placeholder.com/400x300?text=Vyapaar+Seva"}
-                                    />
+                                    <img src={`${IMAGE_BASE}/${vendor.shopImage}`} className="w-full h-full object-cover" alt="shop" />
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-slate-200 bg-slate-100">
                                         <ImageIcon size={48} />
@@ -131,16 +120,15 @@ function SearchResultsContent() {
                                     </div>
                                 </div>
                                 <div className="mt-8 flex gap-3">
-                                    {/* ✅ नया सुधार:stopPropagation() लगाया है ताकी बटन क्लिक करने पर पूरा कार्ड न दबे */}
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); router.push(`tel:${vendor.phone}`); }} 
-                                        className="flex-1 bg-blue-600 text-white font-[1000] py-4 rounded-2xl uppercase text-[10px] tracking-widest shadow-lg active:scale-95 transition-all"
+                                        className="flex-1 bg-blue-600 text-white font-[1000] py-4 rounded-2xl uppercase text-[10px] tracking-widest shadow-lg active:scale-95"
                                     >
                                         Contact Now
                                     </button>
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); setIsModalOpen(true); }} 
-                                        className="px-10 border-2 border-slate-100 text-slate-400 font-[1000] py-4 rounded-2xl uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all"
+                                        className="px-10 border-2 border-slate-100 text-slate-400 font-[1000] py-4 rounded-2xl uppercase text-[10px] tracking-widest hover:bg-slate-50"
                                     >
                                         Enquiry
                                     </button>
@@ -151,11 +139,7 @@ function SearchResultsContent() {
                 )}
             </main>
 
-            <InquiryModal 
-                selectedCat={q}
-                isOpen={isModalOpen} 
-                onClose={() => setIsModalOpen(false)} 
-            />
+            <InquiryModal selectedCat={q} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
         </div>
     );
 }
