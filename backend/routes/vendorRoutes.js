@@ -25,6 +25,7 @@ router.post('/login', vendorController.loginVendor);
 router.put('/update-profile/:id', vendorController.updateProfile);
 router.post('/submit-kyc', vendorController.submitKYC);
 router.put('/update-keywords/:id', vendorController.updateKeywords);
+router.put('/update-profile/:id', upload.array('images', 10), vendorController.updateProfile);
 
 // ============================================================
 // 3. WALLET & FINANCE
@@ -73,6 +74,7 @@ router.get('/my-staff/:vendorId', vendorController.getStaffList);
 router.post('/create-booking', vendorController.createBooking);
 router.get('/my-bookings/:vendorId', vendorController.getMyBookings);
 router.get('/marketing-audience/:vendorId', vendorController.getMarketingAudience);
+
 
 // ============================================================
 // 7. CUSTOMER SIDE ENQUIRY (Leads)

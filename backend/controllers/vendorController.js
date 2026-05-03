@@ -192,6 +192,42 @@ exports.verifyAndAddMoney = async (req, res) => {
         } else { res.status(400).json({ message: "Verification fail" }); }
     } catch (err) { res.status(500).json({ status: "error" }); }
 };
+// ✅ सेलर प्रोफाइल अपडेट करने का असली लॉजिक
+exports.updateProfile = async (req, res) => {
+    try {
+        const { description, keywords, area, city, pincode } = req.body;
+        const vendorId = req.params.id;
+
+        // कीवर्ड्स को एरे (Array) में बदलना
+        let keywordArray = [];
+        if (keywords) {
+            keywordArray = Array.isArray(keywords) ? keywords : keywords.split(',').map(k => k.trim());
+        }
+
+        // फोटो गैलरी के लिए (अगर मल्टीपल फोटो अपलोड की हैं)
+        let newImages = [];
+        if (req.files && req.files.length > 0) {
+            newImages = req.files.map(file => file.filename);
+        }
+
+        const updateData = {
+            description,
+            keywords: keywordArray,
+            area, city, pincode
+        };
+
+        // अगर नई फोटो आई हैं, तो उन्हें लिस्ट में जोड़ दो
+        if (newImages.length > 0) {
+            updateData.$push = { images: { $each: newImages } };
+        }
+
+        const updatedVendor = await Vendor.findByIdAndUpdate(vendorId, updateData, { new: true });
+
+        res.status(200).json({ status: "success", message: "Profile Updated!", vendor: updatedVendor });
+    } catch (err) {
+        res.status(500).json({ status: "error", message: err.message });
+    }
+};
 
 // ============================================================
 // 5. ALL 16+ SUPER TOOLS & HELPERS (STRICTLY NO SKIPS)

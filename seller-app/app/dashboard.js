@@ -255,7 +255,10 @@ export default function AppMasterDashboard() {
                 <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/dashboard')}><Ionicons name="home" size={24} color="#002D62" /><Text style={[styles.navText, { color: '#002D62' }]}>Home</Text></TouchableOpacity>
                 <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('new')}><MaterialCommunityIcons name="flash" size={24} color="#666" /><Text style={styles.navText}>Leads</Text></TouchableOpacity>
                 <TouchableOpacity style={styles.navItem} onPress={() => router.push('/recharge')}><Ionicons name="wallet" size={24} color="#666" /><Text style={styles.navText}>Wallet</Text></TouchableOpacity>
-                <TouchableOpacity style={styles.navItem} onPress={handleLogout}><Ionicons name="log-out" size={24} color="#f44336" /><Text style={[styles.navText, { color: '#f44336' }]}>Logout</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}>
+        <Ionicons name="person" size={24} color="#666" />
+        <Text style={styles.navText}>Profile</Text>
+    </TouchableOpacity>
             </View>
         </View>
     );
